@@ -790,7 +790,14 @@ class StmtStates:
             else:
                 if stmt.operation == "for_value_stmt":
                     if receiver_state.fields:
-                        defined_symbol_states.update(receiver_state.fields.values())
+                        # 遍历fields.values()，逐个处理元素
+                        for val in receiver_state.fields.values():
+                            if isinstance(val, set):
+                                # 若元素是集合，拆解后加入（用update添加多个元素）
+                                defined_symbol_states.update(val)
+                            else:
+                                # 若元素是普通可哈希类型，直接添加（用add添加单个元素）
+                                defined_symbol_states.add(val)
                         continue
 
                 source_index = self.create_state_and_add_space(
