@@ -4,26 +4,34 @@
     - operation: call_stmt
       name: sink
       target: [\%arg0]
+      vuln_type: generic_sink
     - operation: call_stmt
       name: web.FileResponse
       target: [\%arg0]
+      vuln_type: path_traversal
     - operation: call_stmt
       name: pickle.load
       target: [\%arg0]
+      vuln_type: insecure_deserialization
     - operation: call_stmt
       name: FileResponse
       target: [\%arg0]
+      vuln_type: path_traversal
     - operation: record_write
       key: "\"data\""
-      target: [ ]
+      target: []
+      vuln_type: data_exposure
     - operation: object_call
       name: "%this.queue.add"
-      target: [ \%arg0 ]
+      target: [\%arg0]
+      vuln_type: injection
     - operation: call_stmt
       name: send_file
       target: [\%arg0]
+      vuln_type: path_traversal
+
 ######################################## 适配污点使用，勿删 ################################################
-# 25个CVE的source变量（注：此处注释保留原始内容，实际为Sink规则）
+
 - lang: java
   rules:
     # CVE-2023-43654
@@ -32,6 +40,8 @@
       line_num: 61
       unit_name: "HttpUtils.java"
       target: [\%arg0]
+      vuln_type: ssrf
+
     # CVE-2024-11822
     - operation: object_call
       name: requests.request
@@ -44,6 +54,7 @@
       line_num: 39
       unit_name: "ZipUtils.java"
       target: [\%arg0]
+      vuln_type: zip_slip
 
 - lang: go
   rules:
@@ -62,12 +73,16 @@
       line_num: 484
       unit_name: "routes.py"
       target: [\%arg0]
+      vuln_type: path_traversal
+
     # CVE-2023-6730
     - operation: object_call
       name: pickle.load
       line_num: 135
       unit_name: "retrieval_rag.py"
       target: [\%arg0]
+      vuln_type: insecure_deserialization
+
     - operation: field_write
       name: "%this.index_path"
       line_num: 107
@@ -79,11 +94,16 @@
       line_num: 210
       unit_name: tokenization_transfo_xl.py
       target: [\%arg0]
+      vuln_type: insecure_deserialization
+
     # CVE-2024-10044
     - operation: object_call
       name: requests.post
       line_num: 272
       unit_name: "controller.py"
+      target: [\%target]
+      vuln_type: command_injection
+
       target: [\%arg0, \%arg1]
     # CVE-2024-10099
     - operation: object_call
@@ -91,45 +111,61 @@
       line_num: 251
       unit_name: "server.py"
       target: [\%arg0]
+      vuln_type: arbitrary_file_write
+
     - operation: object_call
       name: web.FileResponse
       line_num: 390
       unit_name: "server.py"
       target: [\%arg0]
+      vuln_type: path_traversal
+
     # CVE-2024-10457
     - operation: object_call
       name: "%this.queue.add"
       line_num: 791
       unit_name: "manager.py"
       target: [\%arg0]
+      vuln_type: prompt_injection
+
     - operation: object_call
       name: requests.get
       line_num: 13
       unit_name: "search.py"
       target: [\%arg0]
+      vuln_type: ssrf
+
     # CVE-2024-10940
     - operation: object_call
       name: __init__
       line_num: 36
       unit_name: "image.py"
       target: [\%arg0]
+      vuln_type: arbitrary_file_read
+
     - operation: object_call
       name: image_file.read
       line_num: 15
       unit_name: "image.py"
       target: [\%receiver]
+      vuln_type: arbitrary_file_read
+
     # CVE-2024-11041
     - operation: object_call
       name: pickle.loads
       line_num: 443
       unit_name: "shm_broadcast.py"
       target: [\%arg0]
+      vuln_type: insecure_deserialization
+
     # CVE-2024-11042
     - operation: object_call
       name: thumbnail_path.unlink
       line_num: 107
       unit_name: "image_files_disk.py"
       target: [\%receiver]
+      vuln_type: arbitrary_file_delete
+
     # CVE-2024-11822
     - operation: object_call
       name: requests.request
@@ -142,28 +178,38 @@
       line_num: 113
       unit_name: "base.py"
       target: [\%arg0]
+      vuln_type: sql_injection
+
     # CVE-2024-12029
     - operation: object_call
       name: "%this._queue.put"
       line_num: 124
       unit_name: "download_default.py"
       target: [\%arg0]
+      vuln_type: injection
+
     - operation: object_call
       name: torch.load
       line_num: 63
       unit_name: "model_util.py"
       target: [\%arg0]
+      vuln_type: insecure_deserialization
+
     # CVE-2024-1558
     - operation: object_call
       name: session.flush
       line_num: 706
       unit_name: "sqlalchemy_store.py"
       target: [\%receiver]
+      vuln_type: sql_injection
+
     - operation: call_stmt
       name: send_file
       line_num: 500
       unit_name: "handlers.py"
       target: [\%arg0]
+      vuln_type: path_traversal
+
     # CVE-2024-23731
     - operation: object_call
       name: yaml.load
@@ -175,58 +221,77 @@
       line_num: 366
       unit_name: "embedchain.py"
       target: [\%arg1]
+      vuln_type: insecure_deserialization
+
     # CVE-2024-34359
     - operation: field_write
       name: "%this.chat_handler"
       line_num: 444
       unit_name: "llama.py"
       target: [\%target]
+      vuln_type: code_injection
+
     - operation: object_call
       name: "%this._environment.render"
       line_num: 213
       unit_name: "llama_chat_format.py"
       target: [\%receiver]
+      vuln_type: template_injection
+
     # CVE-2024-4325
     - operation: object_call
-      # TODO 这里的name有问题
       name: event_queue.queue.append
       line_num: 212
       unit_name: "queueing.py"
       target: [\%arg0]
+      vuln_type: injection
+
     - operation: object_call
       name: httpx.stream
       line_num: 193
       unit_name: "processing_utils.py"
       target: [\%arg1]
+      vuln_type: ssrf
+
     # CVE-2024-4941
     - operation: record_write
       key: "\"data\""
       line_num: 1775
       unit_name: "blocks.py"
       target: []
+      vuln_type: data_exposure
+
     - operation: object_call
       name: block.move_resource_to_block_cache
       line_num: 295
       unit_name: "processing_utils.py"
       target: [\%arg0]
+      vuln_type: path_traversal
+
     # CVE-2024-5980
     - operation: object_call
       name: tf.extractall
       line_num: 162
       unit_name: "plugin.py"
       target: [\%arg0]
+      vuln_type: zip_slip
+
     # CVE-2024-8953
     - operation: call_stmt
       name: eval
       line_num: 37
       unit_name: "calculator.py"
       target: [\%arg0]
+      vuln_type: code_execution
+
     # CVE-2024-9053
     - operation: object_call
       name: cloudpickle.loads
       line_num: 157
       unit_name: "server.py"
       target: [\%arg0]
+      vuln_type: insecure_deserialization
+
     # CVE-2025-1040
     - operation: object_call
       name: template.render
@@ -239,24 +304,30 @@
       line_num: 15
       unit_name: "executor.py"
       target: [\%arg0]
+      vuln_type: template_injection
+
     # CVE-2025-24357
     - operation: object_call
       name: torch.load
       line_num: 450
       unit_name: "weight_utils.py"
       target: [\%arg0]
+      vuln_type: insecure_deserialization
+
     # CVE-2025-25362
     - operation: object_call
       name: _template.render
       line_num: 79
       unit_name: "builtin_task.py"
       target: [\%arg0]
-    # CVE-2025-25362
+      vuln_type: template_injection
+
     - operation: object_call
       name: pickle.loads
       line_num: 301
       unit_name: "runner_app.py"
       target: [\%arg0]
+      vuln_type: insecure_deserialization
     # CVE-2022-21797
     - operation: field_write
       name: "%this.pre_dispatch"
@@ -297,4 +368,265 @@
       name: client.get
       line_num: 64
       unit_name: "connections.py"
+      target: [\%arg0]
+################################## 适配野外使用，勿删 #################################
+- lang: python
+  rules:
+    # CosyVoice
+    - operation: object_call
+      name: torch.load
+      line_num: 68
+      unit_name: "model.py"
+      target: [\%arg0]
+    # CosyVoice
+    - operation: object_call
+      name: torch.load
+      line_num: 59
+      unit_name: "frontend.py"
+      target: [\%arg0]
+    # CosyVoice
+    - operation: object_call
+      name: torch.load
+      line_num: 94
+      unit_name: "make_parquet_list.py"
+      target: [\%arg0]
+    # CosyVoice
+    - operation: object_call
+      name: torch.load
+      line_num: 76
+      unit_name: "average_model.py"
+      target: [\%arg0]
+    # LightRAG
+    - operation: object_call
+      name: self._query
+      line_num: 3730
+      unit_name: "postgres_impl.py"
+      target: [\%arg0]
+    # LightRAG
+    - operation: object_call
+      name: self._query
+      line_num: 3774
+      unit_name: "postgres_impl.py"
+      target: [\%arg0]
+    # LightRAG
+    - operation: object_call
+      name: self._query
+      line_num: 3662
+      unit_name: "postgres_impl.py"
+      target: [\%arg0]
+    # PySyft
+    - operation: object_call
+      name: subprocess.run
+      line_num: 151
+      unit_name: "app_router.py"
+      target: [\%arg0]
+    # PySyft
+    - operation: object_call
+      name: method
+      line_num: 1186
+      unit_name: "server.py"
+      target: [\%arg0]
+    # TinyZero
+    - operation: object_call
+      name: os.system
+      line_num: 136
+      unit_name: "hdfs_io.py"
+      target: [\%arg0]
+    # adversarial-robustness-toolbox
+    - operation: call_stmt
+      name: eval
+      line_num: 93
+      unit_name: "robustness.py"
+      target: [\%arg0]
+    # adversarial-robustness-toolbox
+    - operation: object_call
+      name: torch.load
+      line_num: 89
+      unit_name: "robustness.py"
+      target: [\%arg0]
+    # adversarial-robustness-toolbox
+    - operation: call_stmt
+      name: eval
+      line_num: 102
+      unit_name: "robustness_evaluation_fgsm_pytorch.py"
+      target: [\%arg0]
+    # cognee
+    - operation: call_stmt
+      name: exec
+      line_num: 39
+      unit_name: "run_in_local_sandbox.py"
+      target: [\%arg0]
+    # docling
+    - operation: object_call
+      name: etree.parse
+      line_num: 103
+      unit_name: "jats_backend.py"
+      target: [\%arg0]
+    # docling
+    - operation: object_call
+      name: etree.fromstring
+      line_num: 286
+      unit_name: "mets_gbs_backend.py"
+      target: [\%arg0]
+    # flash-attention
+    - operation: object_call
+      name: torch.load
+      line_num: 20
+      unit_name: "checkpoint.py"
+      target: [\%arg0]
+    # flash-attention
+    - operation: object_call
+      name: torch.load
+      line_num: 34
+      unit_name: "eval.py"
+      target: [\%arg0]
+    # gpt-pilot
+    - operation: object_call
+      name: asyncio.create_subprocess_shell
+      line_num: 48
+      unit_name: "process_manager.py"
+      target: [\%arg0]
+    # guardrails
+    - operation: object_call
+      name: subprocess.check_output
+      line_num: 202
+      unit_name: "validator_package_service.py"
+      target: [\%arg0]
+    # horovod
+    - operation: object_call
+      name: cloudpickle.loads
+      line_num: 23
+      unit_name: "codec.py"
+      target: [\%arg0]
+    # imgaug
+    - operation: object_call
+      name: pickle.loads
+      line_num: 893
+      unit_name: "multicore.py"
+      target: [\%arg0]
+    # llm
+    - operation: call_stmt
+      name: exec
+      line_num: 3949
+      unit_name: "cli.py"
+      target: [\%arg0]
+    # ludwig
+    - operation: object_call
+      name: pandas.read_pickle
+      line_num: 279
+      unit_name: "data_utils.py"
+      target: [\%arg0]
+    # ludwig
+    - operation: object_call
+      name: torch.load
+      line_num: 170
+      unit_name: "ecd.py"
+      target: [\%arg0]
+    # mamba
+    - operation: object_call
+      name: torch.load
+      line_num: 18
+      unit_name: "hf.py"
+      target: [\%arg0]
+    # mem0
+    - operation: object_call
+      name: cur.execute
+      line_num: 280
+      unit_name: "pgvector.py"
+      target: [\%arg0]
+    # mem0
+    - operation: object_call
+      name: cur.execute
+      line_num: 254
+      unit_name: "pgvector.py"
+      target: [\%arg0]
+    # mem0
+    - operation: object_call
+      name: cur.execute
+      line_num: 326
+      unit_name: "pgvector.py"
+      target: [\%arg0]
+    # mem0
+    - operation: object_call
+      name: cur.execute
+      line_num: 154
+      unit_name: "pgvector.py"
+      target: [\%arg0]
+    # mem0
+    - operation: object_call
+      name: cur.executemany
+      line_num: 190
+      unit_name: "pgvector.py"
+      target: [\%arg0]
+    # ml-engineering
+    - operation: object_call
+      name: torch.load
+      line_num: 57
+      unit_name: "torch-checkpoint-shrink.py"
+      target: [\%arg0]
+    # nexent
+    - operation: object_call
+      name: Elasticsearch.delete_by_query
+      line_num: 572
+      unit_name: "elasticsearch_core.py"
+      target: [\%arg0]
+    # nexent
+    - operation: object_call
+      name: boto3.client.delete_object
+      line_num: 253
+      unit_name: "client.py"
+      target: [\%arg0]
+    # optimate
+    - operation: call_stmt
+      name: exec
+      line_num: 294
+      unit_name: "neural_magic_training.py"
+      target: [\%arg0]
+    # optimate
+    - operation: object_call
+      name: torch.load
+      line_num: 296
+      unit_name: "neural_magic_training.py"
+      target: [\%arg0]
+    # optimate
+    - operation: object_call
+      name: torch.load
+      line_num: 298
+      unit_name: "neural_magic_training.py"
+      target: [\%arg0]
+    # pytorch-lightning
+    - operation: object_call
+      name: torch.load
+      line_num: 61
+      unit_name: "cloud_io.py"
+      target: [\%arg0]
+    # qlib
+    - operation: object_call
+      name: pickle.load
+      line_num: 174
+      unit_name: "mod.py"
+      target: [\%arg0]
+    # snorkel
+    - operation: object_call
+      name: torch.load
+      line_num: 562
+      unit_name: "trainer.py"
+      target: [\%arg0]
+    # snorkel
+    - operation: object_call
+      name: pickle.load
+      line_num: 144
+      unit_name: "base_labeler.py"
+      target: [\%arg0]
+    # snorkel
+    - operation: object_call
+      name: torch.load
+      line_num: 524
+      unit_name: "multitask_classifier.py"
+      target: [\%arg0]
+    # superduper
+    - operation: call_stmt
+      name: eval
+      line_num: 993
+      unit_name: "query.py"
       target: [\%arg0]

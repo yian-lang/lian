@@ -587,8 +587,9 @@ class TaintRuleApplier:
 
     def get_sink_tag_by_rules(self, node):
         sink_tag = 0
+        vuln_type = None
         if node.node_type != SFG_NODE_KIND.STMT:
-            return sink_tag
+            return sink_tag,  vuln_type
 
         stmt_id = node.def_stmt_id
         stmt = node.stmt
@@ -637,6 +638,7 @@ class TaintRuleApplier:
         # 2. 根据规则检查对应的 symbol 和 state
         for rule in matching_rules:
             targets = rule.target if isinstance(rule.target, list) else [rule.target]
+            vuln_type = rule.vuln_type
             for target in targets:
                 # target_pos = -1
                 if target == TAG_KEYWORD.ARG0:
@@ -679,7 +681,7 @@ class TaintRuleApplier:
         if is_sink_node:
             for pred in self.sfg.predecessors(node):
                 sink_tag |= self.taint_analysis.get_symbol_with_states_tag(pred)
-        return sink_tag
+        return sink_tag, vuln_type
 
 
 class TaintAnalysis:
@@ -890,11 +892,12 @@ class TaintAnalysis:
                         taint_manager=self.taint_manager
                     )
                 # 2. Sink 检查 (针对单一 Sink)
-                sink_tag = self.rule_applier.get_sink_tag_by_rules(sink)
+                sink_tag, vuln_type = self.rule_applier.get_sink_tag_by_rules(sink)
 
                 if (sink_tag & tag) != 0:
                     # print("found taint sink")
                     flow = self.path_finder.reconstruct_define_use_path(source, sink)
+                    flow.vuln_type = vuln_type
                     flow_list.append(flow)
 
                 # 恢复管理器
@@ -1187,6 +1190,7 @@ class TaintAnalysis:
                 "source_file_path": source_file_path,
                 "sink_file_path": sink_file_path,
                 "data_flow": path_parent_sink_file_node_list,
+                "vuln_type": each_flow.vuln_type,
             })
 
         output_dir = os.path.join(self.options.workspace, config.TAINT_OUTPUT_DIR)

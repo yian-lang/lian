@@ -140,7 +140,8 @@ class StmtDefUseAnalysis:
         # util.debug(f"stmt:{stmt}")
         self.each_stmt_defined_states = set()
         handler = self.def_use_analysis_handlers.get(stmt.operation)
-        # util.debug(f"handler:{handler}")
+        util.debug(f"handler:{handler}")
+        print(stmt.operation)
         if handler is not None:
             return handler(stmt_id, stmt)
         return self.empty_def_use(stmt_id, stmt)
@@ -424,7 +425,8 @@ class StmtDefUseAnalysis:
         elif packed_named_args:
             index = used_symbols[-1]
             arg_symbol = self.symbol_state_space[index]
-            packed_named_args_info.append({"symbol_id": arg_symbol.symbol_id, "name": arg_symbol.name})
+            if isinstance(arg_symbol, Symbol):
+                packed_named_args_info.append({"symbol_id": arg_symbol.symbol_id, "name": arg_symbol.name})
 
         defined_symbol = self.symbol_state_space[status.defined_symbol]
 

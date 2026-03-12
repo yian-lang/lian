@@ -58,6 +58,7 @@ class Rule:
     unit_name: str = ""
     line_num: str = ""
     key: str = ""
+    vuln_type: str = ""
     # mock_path: str          = ""
     # mock_id: int            = -1
 
@@ -168,7 +169,8 @@ class RuleManager:
                             unit_name=rule.get("unit_name", None),
                             line_num=rule.get("line_num", None),
                             key=rule.get("key", None),
-                            unset=rule.get("unset", None)
+                            unset=rule.get("unset", None),
+                            vuln_type=rule.get("vuln_type", None),
                         )
                         self.all_sinks.append(new_rule)
 

@@ -297,7 +297,7 @@ class Resolver:
     def get_this_state(self, caller_frame: ComputeFrame, new_indexes: set):
         # print("进入get_this_state")
         call_stmt_id = caller_frame.stmt_worklist.peek()
-        stmt = caller_frame.stmt_id_to_stmt[call_stmt_id]
+        stmt = self.loader.get_stmt_gir(call_stmt_id)
         if stmt.operation != "call_stmt":
             return
 
@@ -926,7 +926,7 @@ class Resolver:
                     continue
 
                 if ignore_field_read_def:
-                    def_stmt = frame.stmt_id_to_stmt[symbol_def_node.stmt_id]
+                    def_stmt = self.loader.get_stmt_gir(symbol_def_node.stmt_id)
                     if def_stmt.operation != "field_read":
                         result.add(symbol_def_node.stmt_id)
                     else:
@@ -946,7 +946,7 @@ class Resolver:
         symbol_ids.update(symbol_decl_stmt_ids)
         # import等语句(见def-use阶段)会修改defined_symbol的symbol_id，需要采集到修改后的symbol_id
         for decl_stmt_id in symbol_decl_stmt_ids:
-            decl_stmt = frame.stmt_id_to_stmt[decl_stmt_id]
+            decl_stmt = self.loader.get_stmt_gir(decl_stmt_id)
             if decl_stmt.operation in IMPORT_OPERATION:
                 decl_stmt_status = frame.stmt_id_to_status[decl_stmt_id]
                 new_symbol_id = frame.symbol_state_space[decl_stmt_status.defined_symbol].symbol_id
@@ -966,12 +966,13 @@ class Resolver:
 
     def find_symbol_global_def_in_unit(self, unit_id, symbol_name)->dict:
         unit_symbol_decl_summary: UnitSymbolDeclSummary = self.loader.get_unit_symbol_decl_summary(unit_id)
-        root_scope_symbol_info = unit_symbol_decl_summary.scope_id_to_symbol_info.get(LIAN_INTERNAL.ROOT_SCOPE, {})
         global_defs = {
             LIAN_SYMBOL_KIND.CLASS_KIND  : set(),
             LIAN_SYMBOL_KIND.METHOD_KIND : set(),
             LIAN_SYMBOL_KIND.IMPORT_STMT : set()
         }
+        if unit_symbol_decl_summary.scope_id_to_symbol_info is None: return global_defs
+        root_scope_symbol_info = unit_symbol_decl_summary.scope_id_to_symbol_info.get(LIAN_INTERNAL.ROOT_SCOPE, {})
         # TODO：加上implicit_root_scope(比如if name=="main"下的scope定义)
         if symbol_name not in root_scope_symbol_info: return global_defs  # 只要定义在顶层scope中的
         symbol_row_id = root_scope_symbol_info[symbol_name]
@@ -1007,7 +1008,9 @@ class Resolver:
             previous_frame:ComputeFrame = call_stack[-previous_frame_index]
             if not isinstance(previous_frame, ComputeFrame):
                 return None
-            caller_method_id, call_stmt_id, callee_method_id = previous_frame.call_site
+            caller_method_id = previous_frame.call_site.caller_id
+            call_stmt_id = previous_frame.call_site.call_stmt_id
+            callee_method_id = previous_frame.call_site.callee_id
             if caller_method_id == call_stmt_id == -1:
                 return None
             caller_method_decl = self.loader.get_method_decl_source_code(caller_method_id)

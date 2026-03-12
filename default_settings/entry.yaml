@@ -160,6 +160,139 @@
 - lang: python
   method_list: ["load_from_url"]
   unit_name: "utils.py"
+######################################## 野外项目使用，误删 ################################################
+# CosyVoice
+- lang: python
+  method_list: ["%unit_init"]
+  unit_name: "webui.py"
+# CosyVoice
+- lang: python
+  method_list: ["%unit_init"]
+  unit_name: "server.py"
+# CosyVoice
+- lang: python
+  method_list: ["%unit_init"]
+  unit_name: "make_parquet_list.py"
+# CosyVoice
+- lang: python
+  method_list: ["%unit_init"]
+  unit_name: "average_model.py"
+# LightRAG
+- lang: python
+  method_list: ["delete_entity"]
+  unit_name: "document_routes.py"
+# LightRAG
+- lang: python
+  method_list: ["delete_relation"]
+  unit_name: "document_routes.py"
+# LightRAG
+- lang: python
+  method_list: ["update_entity"]
+  unit_name: "graph_routes.py"
+# PySyft
+- lang: python
+  method_list: ["app_command"]
+  unit_name: "app_router.py"
+# PySyft
+- lang: python
+  method_list: ["syft_new_api_call"]
+  unit_name: "routes.py"
+# TinyZero
+- lang: python
+  method_list: ["main_task"]
+  unit_name: "main_ppo.py"
+# adversarial-robustness-toolbox
+- lang: python
+  method_list: ["%unit_init"]
+  unit_name: "robustness_evaluation_fgsm_pytorch.py"
+# cognee
+- lang: python
+  method_list: ["run_notebook_cell_endpoint"]
+  unit_name: "get_notebooks_router.py"
+# docling
+- lang: python
+  method_list: ["convert"]
+  unit_name: "main.py"
+# flash-attention
+- lang: python
+  method_list: ["main"]
+  unit_name: "run.py"
+# gpt-pilot
+- lang: python
+  method_list: ["run_pythagora"]
+  unit_name: "main.py"
+# guardrails
+- lang: python
+  method_list: ["install_cli"]
+  unit_name: "install.py"
+# horovod
+- lang: python
+  method_list: ["main"]
+  unit_name: "run_task.py"
+# imgaug
+- lang: python
+  method_list: ["__init__"]
+  unit_name: "multicore.py"
+# llm
+- lang: python
+  method_list: ["prompt"]
+  unit_name: "cli.py"
+# ludwig
+- lang: python
+  method_list: ["predict"]
+  unit_name: "api.py"
+# ludwig
+- lang: python
+  method_list: ["run_server"]
+  unit_name: "serve.py"
+# mamba
+- lang: python
+  method_list: ["%unit_init"]
+  unit_name: "benchmark_generation_mamba_simple.py"
+# mem0
+- lang: python
+  method_list: ["update_memory", "delete_all_memories", "add_memory", "delete_memory"]
+  unit_name: "main.py"
+# ml-engineering
+- lang: python
+  method_list: ["%unit_init"]
+  unit_name: "torch-checkpoint-shrink.py"
+# nexent
+- lang: python
+  method_list: ["delete_documents"]
+  unit_name: "elasticsearch_app.py"
+# nexent
+- lang: python
+  method_list: ["remove_storage_file"]
+  unit_name: "file_management_app.py"
+# optimate
+- lang: python
+  method_list: ["%unit_init"]
+  unit_name: "neural_magic_training.py"
+# pytorch-lightning
+- lang: python
+  method_list: ["load_from_checkpoint"]
+  unit_name: "module.py"
+# qlib
+- lang: python
+  method_list: ["run"]
+  unit_name: "run.py"
+# snorkel
+- lang: python
+  method_list: ["load"]
+  unit_name: "trainer.py"
+# snorkel
+- lang: python
+  method_list: ["load"]
+  unit_name: "base_labeler.py"
+# snorkel
+- lang: python
+  method_list: ["load"]
+  unit_name: "multitask_classifier.py"
+# superduper
+- lang: python
+  method_list: ["demo_func"]
+  unit_name: "rag_plugin.py"
 ######################################## 腾讯项目使用，勿删 ################################################
 - lang: python
   method_list: ['on_voice_change']
