@@ -140,8 +140,8 @@ class StmtDefUseAnalysis:
         # util.debug(f"stmt:{stmt}")
         self.each_stmt_defined_states = set()
         handler = self.def_use_analysis_handlers.get(stmt.operation)
-        util.debug(f"handler:{handler}")
-        print(stmt.operation)
+        # util.debug(f"handler:{handler}")
+        # print(stmt.operation)
         if handler is not None:
             return handler(stmt_id, stmt)
         return self.empty_def_use(stmt_id, stmt)
