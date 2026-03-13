@@ -161,6 +161,7 @@ class TypeHierarchy:
 
         self.loader.save_methods_in_class(class_id, methods_in_class)
 
+    @profile
     def run(self):
         for unit_id in self.unit_list:
             self.analyze_type_hierarchy(unit_id)

@@ -173,7 +173,7 @@ class BasicGraph:
     def has_edge(self, src, dst):
         return self.graph.has_edge(src, dst)
 
-    # @profile
+    @profile
     def add_edge(self, src_stmt, dst_stmt, weight = None):
         src_stmt_id = -1
         dst_stmt_id = -1

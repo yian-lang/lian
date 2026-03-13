@@ -470,6 +470,7 @@ class ImportHierarchy:
             for each_out_edge in out_edges:
                 print(f"  {each_node} -> {each_out_edge}")
 
+    @profile
     def run(self):
         # 把所有的文件和目录全部拉出来，构建初始版的import_graph（node：id， node info -> import_graph_nodes）
         self.initialize_import_graph()

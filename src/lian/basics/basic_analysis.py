@@ -61,6 +61,7 @@ class P1BasicSemanticAnalysis:
     def config(self):
         pass
 
+    @profile
     def analyze_and_save_method_decl_format(self, method_id, method_decl_stmt, parameter_decl_block):
         unit_id = self.loader.convert_method_id_to_unit_id(method_id)
         parameters_info = []
@@ -79,6 +80,7 @@ class P1BasicSemanticAnalysis:
         }
         self.loader.save_method_id_to_method_decl_format(method_id, method_format)
 
+    @profile
     def analyze_method(self, method_id, import_analysis, external_symbol_id_collection, unit_is_analyzed = False):
         frame = ComputeFrame(method_id = method_id, loader = self.loader)
         method_decl_stmt, parameter_decls, method_body = self.loader.get_splitted_method_gir(method_id)
@@ -178,7 +180,7 @@ class P1BasicSemanticAnalysis:
         #     util.debug(f"Grouped methods:\n{types}")
         self.loader.save_grouped_methods(types)
         return types
-
+    @profile
     def analyze_unit_method_parameters(self, unit_id, unit_gir):
         unit_methods = self.loader.convert_unit_id_to_method_ids(unit_id)
         for method_id in unit_methods:

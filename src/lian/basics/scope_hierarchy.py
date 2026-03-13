@@ -65,6 +65,7 @@ class UnitScopeHierarchyAnalysis:
         self.class_id_to_stmt_ids = {}
         self.method_id_to_stmt_ids = {}
 
+    @profile
     def analyze(self):
         if util.is_empty(self.unit_gir):
             # util.error("UnitScopeHierarchyAnalysis.unit_gir is empty")
