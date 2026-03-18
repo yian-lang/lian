@@ -15,12 +15,12 @@ import java.util.HashMap;
 
 public class new_instance {
     public static void main(String[] args) {
-        String str = new abc("hello");
-        ArrayList<Integer> list = new ArrayList<>();
-        HashMap<String, Integer> map = new HashMap<>();
-        str = "hello";
-        String str2 = str + " world";
 
         Person person = new Person("John", 25);
+        String[] testStrings = {
+
+          "test " + "\uD83D\uDE00"
+
+        };
     }
 }

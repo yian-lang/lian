@@ -46,7 +46,7 @@ def strict_eval(content):
         if "CALL" in insn.opname:
             error_and_quit(f"Found dangerous content to be evaluated: f{content}")
 
-    return eval(content, {}, {})
+    return eval(content, {}, {}).encode('utf-8', errors='ignore').decode('utf-8')
 
 class EmptyObject:
     pass
