@@ -63,7 +63,7 @@ def js_then(data: EventData):
     state_analysis = in_data.state_analysis
     args = in_data.args
 
-    this_symbol_index = status.used_symbols.pop(0)
+    this_symbol_index = status.used_symbols[0]
     name_symbol: Symbol = frame.symbol_state_space[this_symbol_index]
     this_states = state_analysis.read_used_states(this_symbol_index, in_states)
 
