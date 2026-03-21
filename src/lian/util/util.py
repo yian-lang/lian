@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # system modules
+import ast
 import os
 import re
 import sys
@@ -46,7 +47,7 @@ def strict_eval(content):
         if "CALL" in insn.opname:
             error_and_quit(f"Found dangerous content to be evaluated: f{content}")
 
-    return eval(content, {}, {}).encode('utf-8', errors='ignore').decode('utf-8')
+    return ast.literal_eval(content, {}, {}).encode('utf-8', errors='ignore').decode('utf-8')
 
 class EmptyObject:
     pass
