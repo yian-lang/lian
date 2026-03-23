@@ -398,8 +398,8 @@ class TaintRuleApplier:
         if method_state_nodes and len(method_state_nodes) > 0:
             for state in method_state_nodes:
                 names.append(util.access_path_formatter(state.access_path) + '.' + stmt.field)
-
-        names.append(stmt.receiver_object + '.' + stmt.field)
+        if stmt.receiver_object:
+            names.append(stmt.receiver_object + '.' + stmt.field)
         # print(name, stmt.start_row)
         for rule in self.rule_manager.all_sources:
             if rule.unit_path and rule.unit_path != unit_path:
