@@ -55,7 +55,7 @@ from lian.common_structs import (
     StateFlowGraph,
     SFGNode,
     SFGEdge,
-    CallSite
+    CallSite,
 )
 
 def json_dict_value_list_to_set_hook(d):
@@ -419,8 +419,19 @@ class ScopeHierarchyLoader(UnitLevelLoader):
     pass
 
 class UnitIDToExportSymbolsLoader(UnitLevelLoader):
-    pass
-
+    def unflatten_item_dataframe_when_loading(self, _id, item_df):
+        unit_export_symbol = {}
+        for row in item_df:
+            node = SymbolNodeInImportGraph(
+                scope_id=row.scope_id,
+                symbol_type=row.symbol_type,
+                symbol_id=row.symbol_id,
+                symbol_name=row.symbol_name,
+                unit_id=row.unit_id,
+            )
+            unit_export_symbol[row.symbol_name] = node
+        return unit_export_symbol
+    
 class ClassIDToMethodInfoLoader(UnitLevelLoader):
     pass
 
@@ -441,8 +452,6 @@ class ClassIDToMembersLoader(UnitLevelLoader):
 
     def unflatten_item_dataframe_when_loading(self, _id, item_df):
         field_name_to_states = {}
-        # print(777777777777777777777)
-        # print(type(item_df), item_df)
         for row in item_df:
             field_name_to_states[row.field_name] = set(row.field_states)
         return field_name_to_states

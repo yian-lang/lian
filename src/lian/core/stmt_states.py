@@ -3193,68 +3193,34 @@ class StmtStates:
                     each_defined_states.update(index_set)
                     continue
 
-                # # if field_name not in receiver_state.fields:
-                # elif self.is_state_a_unit(each_receiver_state):
-                #     import_graph = self.loader.get_import_graph()
-                #     import_symbols = self.loader.get_unit_export_symbols(each_receiver_state.value)
-                #     # [ah]
-                #     found_in_import_graph = False
-                #     # 解决file.symbol的情况，从import graph里找symbol
-                #     for u, v, wt in import_graph.edges(data=True):
-                #         real_name = wt.get("real_name", None)
-                #         if real_name == field_name:
-                #             symbol_type = wt.get("symbol_type", None)
-                #             if symbol_type == LIAN_SYMBOL_KIND.METHOD_KIND:
-                #                 data_type = LIAN_INTERNAL.METHOD_DECL
-                #             elif symbol_type == LIAN_SYMBOL_KIND.CLASS_KIND:
-                #                 data_type = LIAN_INTERNAL.CLASS_DECL
-                #             else:
-                #                 data_type = LIAN_INTERNAL.UNIT
-                #
-                #             state_index = self.create_state_and_add_space(
-                #                 status, stmt_id=stmt_id,
-                #                 source_symbol_id=v,
-                #                 source_state_id=each_receiver_state.source_state_id,
-                #                 data_type=data_type,
-                #                 value=v,
-                #                 # access_path=self.copy_and_extend_access_path(
-                #                 #     each_receiver_state.access_path,
-                #                 #     AccessPoint(
-                #                 #         key=real_name,
-                #                 #     )
-                #                 # )
-                #                 access_path=[AccessPoint(key=real_name)]
-                #             )
-                #             found_in_import_graph = True
-                #             self.update_access_path_state_id(state_index)
-                #             each_defined_states.add(state_index)
-                #
-                #     if import_symbols and not found_in_import_graph:
-                #         for import_symbol in import_symbols:
-                #             if import_symbol.symbol_name == field_name:
-                #                 if import_symbol.symbol_type == LIAN_SYMBOL_KIND.METHOD_KIND:
-                #                     data_type = LIAN_INTERNAL.METHOD_DECL
-                #                 elif import_symbol.symbol_type == LIAN_SYMBOL_KIND.CLASS_KIND:
-                #                     data_type = LIAN_INTERNAL.CLASS_DECL
-                #                 else:
-                #                     data_type = LIAN_INTERNAL.UNIT
-                #
-                #                 state_index = self.create_state_and_add_space(
-                #                     status, stmt_id=stmt_id,
-                #                     source_symbol_id=import_symbol.symbol_id,
-                #                     source_state_id=each_receiver_state.source_state_id,
-                #                     data_type=data_type,
-                #                     value=import_symbol.import_stmt,
-                #                     # access_path = self.copy_and_extend_access_path(
-                #                     #     each_receiver_state.access_path,
-                #                     #     AccessPoint(
-                #                     #         key=import_symbol.symbol_name,
-                #                     #     )
-                #                     # )
-                #                     access_path=[AccessPoint(key=import_symbol.symbol_name)]
-                #                 )
-                #                 self.update_access_path_state_id(state_index)
-                #                 each_defined_states.add(state_index)
+                elif self.is_state_a_unit(each_receiver_state):
+                    import_symbols = self.loader.get_unit_export_symbols(each_receiver_state.value)
+
+                    if field_name in import_symbols:
+                        import_symbol = import_symbols[field_name]
+                        if import_symbol.symbol_type == LIAN_SYMBOL_KIND.METHOD_KIND:
+                            data_type = LIAN_INTERNAL.METHOD_DECL
+                        elif import_symbol.symbol_type == LIAN_SYMBOL_KIND.CLASS_KIND:
+                            data_type = LIAN_INTERNAL.CLASS_DECL
+                        else:
+                            data_type = LIAN_INTERNAL.UNIT
+
+                        state_index = self.create_state_and_add_space(
+                            status, stmt_id=stmt_id,
+                            source_symbol_id=import_symbol.symbol_id,
+                            source_state_id=each_receiver_state.source_state_id,
+                            data_type=data_type,
+                            value=import_symbol.import_stmt,
+                            # access_path = self.copy_and_extend_access_path(
+                            #     each_receiver_state.access_path,
+                            #     AccessPoint(
+                            #         key=import_symbol.symbol_name,
+                            #     )
+                            # )
+                            access_path=[AccessPoint(key=import_symbol.symbol_name)]
+                        )
+                        self.update_access_path_state_id(state_index)
+                        each_defined_states.add(state_index)
 
                 elif self.is_state_a_class_decl(each_receiver_state):
                     first_found_class_id = -1  # 记录从下往上找到该方法的第一个class_id。最后只返回该class中所有的同名方法，不继续向上找。
