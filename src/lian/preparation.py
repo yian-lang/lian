@@ -325,7 +325,6 @@ class ModuleSymbolsBuilder:
             counter = 0
             while counter < len(path_list):
                 parent_path = os.path.join(self.target_src_path, os.sep.join(path_list[:counter]))
-                #print("parent_path: ", parent_path, path_list, remaining_path)
                 parent_module_id = self.file_path_to_id.get(parent_path, 0)
                 real_path = os.path.join(parent_path, path_list[counter])
                 if real_path in self.file_path_to_id:
@@ -389,6 +388,5 @@ class ModuleSymbolsBuilder:
 
 def run(options, loader):
     dst_file_to_src_file = WorkspaceBuilder(options).run()
-    #print("dst_file_to_src_file", dst_file_to_src_file)
     ModuleSymbolsBuilder(options, loader, dst_file_to_src_file).run()
     loader.export()

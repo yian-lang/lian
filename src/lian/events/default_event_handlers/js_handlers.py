@@ -104,7 +104,6 @@ def new_object_proto(data: EventData):
     type_states = in_data.type_states
     for defined_state_index in defined_states:
         defined_state = frame.symbol_state_space[defined_state_index]
-        # print(defined_state)
         for type_state_index in type_states:
             type_state = frame.symbol_state_space[type_state_index]
 

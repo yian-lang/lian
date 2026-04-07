@@ -220,7 +220,6 @@ class Parser(common_parser.Parser):
         field = node.named_children
         decl = []
         for child in field:
-            # print(child, child.type)
             if("declaration" in child.type):
                 decl.append(child)
 
@@ -233,7 +232,6 @@ class Parser(common_parser.Parser):
                     extra = gir_node["static_init"]
 
             self.parse(child, statements)
-            # print(child, statements)
             if statements:
                 for stmt in statements:
                     if "variable_decl" in stmt:

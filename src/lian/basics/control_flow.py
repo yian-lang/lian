@@ -227,7 +227,6 @@ class ControlFlowAnalysis:
         body_id = current_stmt.body
         body = self.read_block(body_id)
         boundary = self.boundary_of_multi_blocks(current_block, [body_id])
-        #print("boundary", boundary)
 
         new_special_stmts = []
         last_stmts = self.analyze_block(
@@ -265,7 +264,6 @@ class ControlFlowAnalysis:
         boundary = self.boundary_of_multi_blocks(current_block, [body_id])
 
         case_stmt_set = []
-        # print("body:", body)
         if body:
             case_stmt_set = body.query_field("parent_stmt_id", body_id)
         # util.debug(f"case_stmt_set = body.remove_blocks():{case_stmt_set}")

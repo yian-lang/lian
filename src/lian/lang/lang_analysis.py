@@ -116,14 +116,13 @@ class GIRProcessing:
         1. 初始化扁平化节点结构
         2. 处理变量声明的from属性继承
         3. 递归处理子节点内容
-        4. 构建操作类型到内容的映射
+        4. 构建操作类型到内容 mapping
         """
         if not isinstance(stmt, dict):
             util.error("[Input format error] The input node should not be a dictionary: " + str(stmt))
             return
 
         # pprint.pprint(stmt)
-        # print(last_node)
 
         flattened_node = {}
         dataframe.append(flattened_node)
@@ -396,7 +395,6 @@ class LangAnalysis:
         if len(all_units) == 0:
             util.error_and_quit("No files found for analysis.")
 
-        #print("all_units:", all_units)
         current_node_id = self.init_start_stmt_id()
 
         units_to_analyze = all_units

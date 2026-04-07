@@ -69,7 +69,6 @@ class Parser(common_parser.Parser):
         return self.read_node_text(node)
 
     def check_declaration_handler(self, node):
-        # print(node.sexp())
         DECLARATION_HANDLER_MAP = {
             "class_definition": self.class_definition,
             "method_definition": self.method_definition,
@@ -130,10 +129,8 @@ class Parser(common_parser.Parser):
         return handler(node, statements)
 
     def primary_expression(self, node, statements):
-        # print(node.sexp())
         opcode = self.find_child_by_type(node, "opcode")
         shadow_opcode = self.read_node_text(opcode)
-        #print(shadow_opcode)
         values = {}
         for type in type_list:
             values[type] = []
@@ -178,7 +175,6 @@ class Parser(common_parser.Parser):
                 self.append_stmts(statements, node, {"assign_stmt": {"target": v0, "operand": shadow_number}})
             return v0
         elif re.compile(r'^check.*').match(shadow_opcode):
-            #print(node.sexp())
             v0 = self.read_node_text(node.named_children[1])
             class_identifier = node.named_children[2]
             shadow_class = self.read_node_text(class_identifier)
@@ -305,7 +301,6 @@ class Parser(common_parser.Parser):
 
         elif re.compile(r'^invoke.*').match(shadow_opcode) or shadow_opcode=='execute-inline' or shadow_opcode=='excute-inline-range':
             #global tmp_return
-            #print(node.sexp())
             tmp_return=self.tmp_variable()
             args_list = []
             args=node.named_children[1]
@@ -446,7 +441,6 @@ class Parser(common_parser.Parser):
         return dest
 
     def param_directive(self, node, statements):
-        # print("param:", node.sexp())
         name = self.read_node_text(self.find_child_by_type(node, "parameter"))
         annotation_list = self.find_children_by_type(node, "annotation_directive")
         if len(annotation_list):
@@ -459,7 +453,6 @@ class Parser(common_parser.Parser):
         return name
 
     def parameter_directive(self, node, statements):
-        # print(node.sexp())
         name = self.read_node_text(node.named_children[0])
         self.append_stmts(statements, node, {"parameter_decl": {"name": name}})
         annotation_list = self.find_children_by_type(node, "annotation_directive")
@@ -469,7 +462,6 @@ class Parser(common_parser.Parser):
         return
 
     def variable_directive(self, node, statements):
-        # print("variable:", node.sexp())
         shadow_register = self.read_node_text(node.named_children[0])
         if node.named_children[1]:
             shadow_local = self.read_node_text(node.named_children[1])
@@ -486,7 +478,6 @@ class Parser(common_parser.Parser):
         return
 
     def annotation_directive(self, node, statements):
-        # print("annotation:", node.sexp())
         shadow_annotation_visibility = self.read_node_text(node.named_children[0])
         shadow_class_identifier = self.read_node_text(node.named_children[1])
         annotation_property_list = node.named_children[2:]
@@ -499,11 +490,9 @@ class Parser(common_parser.Parser):
         return
 
     def notmatch_directive(self, node, statements):
-        # print("empty:", node.sexp())
         return
 
     def restart_local_directive(self, node, statements):
-        #print(node.sexp())
         register = self.read_node_text(node.named_children[0])
         self.append_stmts(statements, node, {"variable_decl": { "name": register }})
         return register
@@ -520,7 +509,6 @@ class Parser(common_parser.Parser):
         latest_label = label
 
     def packed_switch_directive(self, node, statements):
-        #print(node.sexp())
         global latest_label
         switch_label = latest_label
         condition = self.read_node_text(self.find_child_by_type(node, "number"))
@@ -541,7 +529,6 @@ class Parser(common_parser.Parser):
             statements[stmt_id]["switch_stmt"]['body']= cases
 
     def sparse_switch_directive(self, node, statements):
-        #print(node.sexp())
         global latest_label
         switch_label = latest_label
         conditions = self.find_children_by_type(node, "number")
@@ -555,11 +542,9 @@ class Parser(common_parser.Parser):
         if switch_label in unsolved_switch.keys():
             stmt_id = unsolved_switch[switch_label]
             del(unsolved_switch[switch_label])
-            #print(statements[stmt_id])
             statements[stmt_id]["switch_stmt"]['body']= cases
 
     def array_data_directive(self, node, statements):
-        #print(node.sexp())
         element_width = self.find_child_by_field(node, "element_width")
         values = self.find_children_by_field(node,"value")
         global latest_label
@@ -638,7 +623,6 @@ class Parser(common_parser.Parser):
         self.append_stmts(statements, node, {"class_decl":{"attrs":attrs,"name":class_name,"supers":supers,"static_init":static_init,"init":init,"fields":fields,"methods":methods}})
 
     def method_definition(self,node, statements):
-        #print(node.sexp())
         access_modifiers=self.find_children_by_type(node,"access_modifier")
         attrs=[]
         for modifier in access_modifiers:
@@ -685,7 +669,6 @@ class Parser(common_parser.Parser):
 
 
     def field_definition(self,node, fields,static_init,init,body):
-        #print(node.sexp())
         access_modifiers=self.find_child_by_type(node,"access_modifiers")
         attrs=[]
         if access_modifiers is not None:

@@ -322,7 +322,6 @@ class ImportHierarchy:
         new_node = node.clone()
         new_node.unit_id = unit_id
         if len(alias) > 0:
-            #print("alias", alias, stmt)
             new_node.symbol_name = alias
         return new_node
 

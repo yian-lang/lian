@@ -168,7 +168,6 @@ class DataModel:
         return column
 
     def slice(self, start_index, end_index):
-        #print("self._data.iloc[start_index: end_index]", start_index, end_index, self._data.iloc[start_index: end_index], self._data)
         result = DataModel(self._data.iloc[start_index: end_index], columns = self._schema.keys())
         return result
 
@@ -380,7 +379,6 @@ class Row:
 
     def to_dict(self):
         result = {}
-        #print(self._schema)
         for key, pos in self._schema.items():
             result[key] = self._row[pos]
         return result

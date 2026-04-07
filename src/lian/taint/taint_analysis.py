@@ -310,14 +310,12 @@ class TaintRuleApplier:
             if rule.line_num and rule.line_num != int(stmt.start_row + 1):
                 continue
             if not rule.attr and rule.name == parameter_symbol.name:
-                # print(rule.name)
                 return True
             if rule.operation != "parameter_decl":
                 continue
             # if rule.attr and rule.attr not in attrs:
             #     continue
             if rule.name == parameter_symbol.name:
-                # print(rule.name)
                 return True
         return False
 
@@ -335,7 +333,6 @@ class TaintRuleApplier:
                 # 格式化访问路径
                 access_path = access_path_formatter(state_node.access_path)
                 if access_path == rule.name:
-                    # print(rule.name)
                     return True
 
         return False
@@ -373,7 +370,6 @@ class TaintRuleApplier:
                 if len(access_path) == 0:
                     access_path = method_symbol_node.name
                 if access_path == name:
-                    # print(rule.name)
                     apply_rule_flag = True
                     tag = self.taint_analysis.taint_manager.get_symbol_tag(tag_space_id)
                     new_tag = self.taint_analysis.taint_manager.add_and_update_tag_bv(tag_info=tag_info,
@@ -400,7 +396,6 @@ class TaintRuleApplier:
                 names.append(util.access_path_formatter(state.access_path) + '.' + stmt.field)
         if stmt.receiver_object:
             names.append(stmt.receiver_object + '.' + stmt.field)
-        # print(name, stmt.start_row)
         for rule in self.rule_manager.all_sources:
             if rule.unit_path and rule.unit_path != unit_path:
                 continue
@@ -409,7 +404,6 @@ class TaintRuleApplier:
             if rule.line_num and rule.line_num != int(node.line_no + 1):
                 continue
             if rule.name in names:
-                # print(rule.name)
                 return True
         return False
 
@@ -431,7 +425,6 @@ class TaintRuleApplier:
         names.append(stmt.receiver_object + '.' + stmt.field)
         if stmt.field == "__init__":
             names.append("__init__")
-        # print(name, stmt.start_row)
         for rule in self.rule_manager.all_sinks:
             if rule.unit_path and rule.unit_path != unit_path:
                 continue
@@ -786,7 +779,7 @@ class TaintAnalysis:
             if key != "":
                 key_list.append(key)
 
-        # 使用点号连接所有 key 值
+        # Concatenate all key values using dot notation
         access_path = '.'.join(key_list)
         return access_path
 
@@ -895,7 +888,6 @@ class TaintAnalysis:
                 sink_tag, vuln_type = self.rule_applier.get_sink_tag_by_rules(sink)
 
                 if (sink_tag & tag) != 0:
-                    # print("found taint sink")
                     flow = self.path_finder.reconstruct_define_use_path(source, sink)
                     flow.vuln_type = vuln_type
                     flow_list.append(flow)
@@ -1217,14 +1209,7 @@ class TaintAnalysis:
             self.taint_manager = TaintEnv()
             sources = self.find_sources()
             sinks = self.find_sinks()
-            # print(sources, sinks)
-            # if len(sources) > 0:
-            #     for source in sources:
-            #         print(source.name)
-            # if len(sinks) > 0:
-            #     for sink in sinks:
-            #         print(sink.line_no)
-            # print("entry:", self.loader.convert_method_id_to_method_name(method_id), method_id)
+
             flows = self.find_flows(sources, sinks)
             all_flows.extend(flows)
 

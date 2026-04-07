@@ -270,7 +270,6 @@ class UnitScopeHierarchyAnalysis:
             elif row.operation in CLASS_DECL_OPERATION:
                 self.class_stmt_ids.add(stmt_id)
                 scope_id = self.determine_scope(row.parent_stmt_id)
-                #print("scope_id:", scope_id, "row", row)
                 name = ""
                 # if row.operation == "implement_decl":
                 #     name = row.struct_name
@@ -438,9 +437,7 @@ class UnitScopeHierarchyAnalysis:
 
                 if util.is_available(symbol_name):
                     if self.options.strict_parse_mode:
-                        #print("row:", row)
                         if row.scope_id in scope_id_to_symbol_info:
-                            #print("symbol_name:", symbol_name)
                             if symbol_name in scope_id_to_symbol_info[row.scope_id]:
                                 previous_decl_id = scope_id_to_symbol_info[row.scope_id][symbol_name]
                                 previous_stmt = self.unit_gir.get_stmt_by_id(previous_decl_id)

@@ -565,7 +565,6 @@ class Parser(common_parser.Parser):
         packed_array_args = None
         packed_record_args = None
 
-        #print("node:", str(node))
 
         if args.type == "argument_list":
             list_splat_children = self.find_children_by_type(args, "list_splat")
@@ -757,7 +756,6 @@ class Parser(common_parser.Parser):
                 elif parameter_node_type == "keyword_separator":
                     only_keyword = True
 
-        #print("child", child.children)
         statements.extend(tmp_body)
 
         new_body = []

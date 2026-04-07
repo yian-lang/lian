@@ -15,7 +15,6 @@ import dis
 from lian.config import config
 
 def is_empty(element):
-    #print("is_empty:", element)
     if element is None:
         return True
     if isinstance(element, (int, float)):

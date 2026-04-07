@@ -143,7 +143,6 @@ class StmtDefUseAnalysis:
         self.each_stmt_defined_states = set()
         handler = self.def_use_analysis_handlers.get(stmt.operation)
         # util.debug(f"handler:{handler}")
-        # print(stmt.operation)
         if handler is not None:
             return handler(stmt_id, stmt)
         return self.empty_def_use(stmt_id, stmt)
@@ -212,7 +211,6 @@ class StmtDefUseAnalysis:
                     self.unit_id, stmt.stmt_id, defined_symbol.name, self.unit_symbol_decl_summary,
                 )
 
-                #print(f"@@@@ {stmt} {source_info}")
                 if util.is_available(source_info):
                     defined_symbol.source_unit_id = source_info.source_unit_id
                     symbol_id = source_info.source_symbol_id
@@ -254,7 +252,6 @@ class StmtDefUseAnalysis:
             source_info = self.resolver.resolve_symbol_source_decl(
                 self.unit_id, stmt_id, used_symbol.name, self.unit_symbol_decl_summary,
             )
-            #print("source_info:", source_info, self.unit_id, self.method_id, stmt_id, used_symbol, stmt)
             if util.is_available(source_info):
                 if source_info.source_symbol_id == stmt_id or source_info.source_symbol_id < 0:
                     if used_symbol.name in self.external_symbol_id_collection:
@@ -295,7 +292,6 @@ class StmtDefUseAnalysis:
             return -1
 
         if not data_type:
-            #print("value: ", value)
             data_type = type_table.determine_constant_type(value)
         if data_type == LIAN_INTERNAL.STRING:
             value = self.adjust_constant_string(value)
@@ -370,10 +366,8 @@ class StmtDefUseAnalysis:
         # args_list = []
         if not util.isna(stmt.positional_args):
             positional_args = args_list[:positional_arg_index]
-            # print(args_list[0])
         elif not util.isna(stmt.packed_positional_args):
             packed_named_args = args_list[0]
-        # print(positional_args)
         if not util.isna(stmt.packed_named_args):
             packed_named_args = args_list[positional_arg_index:]
         elif not util.isna(stmt.named_args):
@@ -390,10 +384,6 @@ class StmtDefUseAnalysis:
         packed_positional_args_info = []
         named_args_info = []
         packed_named_args_info = []
-        #print("stmt", stmt)
-        #print("positional_args", positional_args)
-        #print("args_list", args_list)
-        #print(stmt_id)
         if positional_args and len(arg_symbol_list) > 0:
             for index, arg in enumerate(positional_args):
                 if index >= len(arg_symbol_list):
@@ -777,7 +767,6 @@ class StmtDefUseAnalysis:
         self.common_import_def_use(stmt_id, stmt, used_symbol_list)
 
     def import_stmt_def_use(self, stmt_id, stmt):
-        # print("analyzing import_stmt_def_use")
         used_symbol_list = []
         for symbol in [stmt.name]:
             if not util.isna(symbol):

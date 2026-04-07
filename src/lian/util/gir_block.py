@@ -331,7 +331,6 @@ class GIRBlockViewer:
         max_index = -1
         for block_id in multi_block_ids:
             block_range = self._block_id_to_range.get(block_id)
-            #print("block_range", block_id, block_range)
             if block_range is None:
                 continue
 

@@ -448,8 +448,8 @@ class Resolver:
     #         )
     #         new_indexes.add(new_index)
 
-    #     # print(f"new_space in get_sub_space: {new_space}")
-    #     # print(f"new_indexes in get_sub_space: {new_indexes}\n")
+    #
+    #
 
     #     return new_space
 
@@ -640,8 +640,6 @@ class Resolver:
             return return_indexes
         # 根据source state的access_path找到目标state
         accessed_states = self.get_state_from_path(current_space, access_path, source_state_indexes)
-        # if self.options.debug:
-        #     print(f"source_state_indexes after get_state_from_path: {accessed_states}")
         if not accessed_states:
             return return_indexes
 
@@ -664,8 +662,6 @@ class Resolver:
         #         frame.symbol_state_space.append_space_copy(new_space_copy)
         #         for each_index in new_indexes:
         #             return_indexes.add(new_space_copy.old_index_to_new_index[each_index])
-        # print(f"source_state_indexes before get_state_from_path: {source_state_indexes}")
-        # print(f"current_space:{current_space}")
         return return_indexes
 
 

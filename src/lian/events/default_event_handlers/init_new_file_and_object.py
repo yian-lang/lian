@@ -59,7 +59,7 @@ def init_imported_unit(data: EventData):
         return
 
     elif frame.loader.is_unit_id(unit_id):
-        # 如果import的是一个模块/文件，则先根据其import_graph初始化其所有import的unit。再调用其%unit_init方法。
+        # If importing a module/file, initialize all imported units according to its import_graph first, then recursively initialize.
         import_graph = frame.loader.load_import_graph()
         if import_graph.graph.has_node(unit_id):
             children_imports = util.graph_successors(import_graph.graph, unit_id)
@@ -132,7 +132,7 @@ def init_new_object(data: EventData):
             access_path= [AccessPoint(key = type_name, kind = ACCESS_POINT_KIND.NEW_OBJECT)]
         )
 
-        # 把成员方法名放入new_object_state的fields {method_name: {method_decl_state_indexes}}
+        # Populate method names into new_object_state fields
         new_object_state = frame.symbol_state_space[new_object_state_index]
         if methods_in_class:
             member_methods = {}
@@ -160,9 +160,9 @@ def init_new_object(data: EventData):
 
         state_analysis.update_access_path_state_id(new_object_state_index)
         type_state_to_new_index[each_type_state_index] = new_object_state_index
-        # 创建该类型实例时需要调用的初始化方法
+        # Initialization method called upon creating an instance of this type
         type_state_to_callee_methods[each_type_state_index] = callee_method_list
-        defined_symbol.states.add(new_object_state_index) # 就给旧state即可，后文再用时自然会根据state_id找到构造函数加工过的最新版本state
+        defined_symbol.states.add(new_object_state_index) # Provide the old state; later uses will locate the updated state constructed via state_id
     app_return = er.config_continue_event_processing(app_return)
     return app_return
 
@@ -183,11 +183,11 @@ def apply_constructor_summary(data: EventData):
     args = in_data.args
 
     for each_type_state_index in type_state_to_new_index:
-        # 取出先前创建的new_instance_state
+        # Retrieve the previously created new_instance_state
         new_object_state_index = type_state_to_new_index[each_type_state_index]
 
         if each_type_state_index in type_state_to_callee_methods:
-            # call 创建该类型实例时需要调用的初始化方法
+            # call Initialization method called upon creating an instance of this type
             callee_method_list = type_state_to_callee_methods[each_type_state_index]
         if callee_method_list:
             p2result_flag = state_analysis.compute_target_method_states(

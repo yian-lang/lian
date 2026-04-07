@@ -54,7 +54,7 @@ def write_to_this_class(data: EventData):
         field_name = str(each_field_state.value)
         if len(field_name) == 0:
             continue
-        # FIXME 分支living graph，会覆盖
+        # FIXME Branch living graph, will overwrite
         class_members[field_name] = source_states
     loader.save_class_id_to_members(class_id, class_members)
     return app_return
@@ -108,6 +108,6 @@ def access_path_formatter(state_access_path):
         if key != "":
             key_list.append(key)
 
-    # 使用点号连接所有 key 值
+    # Concatenate all key values using dot notation
     access_path = '.'.join(key_list)
     return access_path

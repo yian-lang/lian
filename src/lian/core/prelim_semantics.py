@@ -1328,7 +1328,6 @@ class P2PrelimSemanticAnalysis:
             if counter >= 20:
                 break
             counter+=1
-            # print(each_op)
 
     def run(self):
         if not self.options.quiet:

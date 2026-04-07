@@ -318,7 +318,6 @@ class Parser(common_parser.Parser):
 
         shadow_type, shadow_value = self.parse_type_and_value(type_and_value, statements)
 
-        # print("shadow_type", shadow_type, shadow_value)
 
         if raw_type.startswith("%struct."):
             counter = -1

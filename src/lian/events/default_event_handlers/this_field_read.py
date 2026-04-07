@@ -42,27 +42,22 @@ def resolve_this_field_method(data: EventData):
     defined_states = in_data.defined_states
     app_return = er.config_event_unprocessed()
 
-    # 只处理对self的field_read
+    # Process only field reads related to self
     if not check_this_read(receiver_symbol,receiver_states,frame):
         data.out_data.receiver_states = receiver_states
         app_return = er.config_continue_event_processing(app_return)
         return app_return
-    # 取出该类的methods_in_class
+    # Retrieve methods_in_class for the specified class
     current_method_id = frame.method_id
     current_class_id = loader.convert_method_id_to_class_id(current_method_id)
     methods_in_class = copy.deepcopy(loader.get_methods_in_class(current_class_id))
-    # print(methods_in_class)
-    # print(f"精确大小: {asizeof.asizeof(methods_in_class)} 字节")
     for each_class in frame.classes_of_method:
         if each_class != current_class_id:
             method_in_current_class = loader.get_methods_in_class(each_class)
             methods_in_class.extend(method_in_current_class)
     method_name = loader.convert_method_id_to_method_name(current_method_id)
     class_name = loader.convert_class_id_to_class_name(current_class_id)
-    # print("methods_in_class: \n",methods_in_class)
-    # print("receiver_states:",receiver_states,\
-    #       "\n当前方法是来自",class_name,"类的",method_name)
-    # print([frame.symbol_state_space[i].data_type for i in receiver_states])
+    #       "\nCurrent method originates from",class_name,"类的",method_name)
     for each_receiver_state_index in receiver_states:
         each_receiver_state : State = frame.symbol_state_space[each_receiver_state_index]
         if not isinstance(each_receiver_state, State):
@@ -73,20 +68,19 @@ def resolve_this_field_method(data: EventData):
             if not isinstance(each_field_state, State):
                 continue
             field_name = str(each_field_state.value)
-            # print("resolve_this_field_method@ field_name是",field_name)
             if len(field_name) == 0:
                 continue
 
-            # 如果当前receiver_this_state中已经有该field存在，就pass
+            # Pass if the field already exists in current receiver_this_state
             if field_name in each_receiver_state.fields and len(each_receiver_state.fields[field_name]) > 0:
                 continue
 
-            # 取出该methods_in_class中，所有方法名为field_name的方法
+            # Retrieve all methods named field_name from methods_in_class
             found_method_ids = [method.stmt_id for method in methods_in_class if method.name == field_name]
             if util.is_empty(found_method_ids):
                 continue
 
-            # copy_on_change 创建一个原receiver_state的副本
+            # copy_on_change Create a profound copy of the original receiver_state
             new_receiver_state_index = state_analysis.create_copy_of_state_and_add_space(status, stmt_id, each_receiver_state_index, stmt)
             new_receiver_state = frame.symbol_state_space[new_receiver_state_index]
             for each_method_id in found_method_ids:
@@ -111,7 +105,6 @@ def resolve_this_field_method(data: EventData):
             receiver_states.add(new_receiver_state_index)
             # 新创了this_state副本之后，要把之前summary中的key_dynamic_content中原来的this_state去掉。否则之后取this_state的时候会状态爆炸
             state_analysis.unset_key_state_flag(receiver_symbol.symbol_id, each_receiver_state_index)
-            # print("copy_on_change 产生的新state是",new_receiver_state_index,"原来是",each_receiver_state_index)
             # pprint.pprint(new_receiver_state)
 
     data.out_data.receiver_states = receiver_states
@@ -134,7 +127,7 @@ def read_from_this_class(data: EventData):
     app_return = er.config_event_unprocessed()
     resolver = state_analysis.resolver
 
-    # 只在global_analysis的this_field_read开启
+    # Enabled exclusively in global_analysis this_field_read
     if not check_this_read(receiver_symbol,receiver_states,frame) or state_analysis.analysis_phase_id != 3:
         data.out_data.receiver_states = receiver_states
         app_return = er.config_continue_event_processing(app_return)

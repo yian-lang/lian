@@ -3,11 +3,11 @@
 from lian.util import util
 
 EventHandlerReturnKind = util.SimpleEnum({
-    "UNPROCESSED"                       : 0, #没有经过任何handler修改和处理
-    "SUCCESS"                           : 1, #继续处理
-    "STOP_OTHER_EVENT_HANDLERS"         : 2, #停止其他handler处理
-    "STOP_REQUESTERS"                   : 4, #不允许触发该event的业务代码继续处理
-    "INTERRUPTION_CALL"                 : 8, #中断,调用qitahanshu
+    "UNPROCESSED"                       : 0, #Unprocessed by any handler
+    "SUCCESS"                           : 1, #Continue processing
+    "STOP_OTHER_EVENT_HANDLERS"         : 2, #Stop other handlers from processing
+    "STOP_REQUESTERS"                   : 4, #不允许触发该event的业务代码Continue processing
+    "INTERRUPTION_CALL"                 : 8, #Interrupt and call corresponding functions
 })
 
 def is_event_successfully_processed(event_return):

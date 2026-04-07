@@ -530,14 +530,12 @@ class Parser(common_parser.Parser):
         return self.CONSTANTS_MAP.get(content, content)
 
     def concatenated_string(self, node, statements, replacement):
-        #print(node)
         replacement = []
         ret = ""
 
         for child in node.named_children:
             if child.type == "string_literal":
                 parsed = self.parse(child, statements, replacement)
-                #print(parsed)
                 ret += parsed[1:-1]
 
 
@@ -719,7 +717,6 @@ class Parser(common_parser.Parser):
         body = self.find_child_by_field(node, "body")
         if body:
             self.struct_body(body, gir_node)
-            #print({f"{self.STRUCT_TYPE_MAP[node.type]}_decl": gir_node})
             self.append_stmts(statements,  node, {f"{self.STRUCT_TYPE_MAP[node.type]}_decl": gir_node})
 
         return gir_node["name"]
@@ -788,7 +785,6 @@ class Parser(common_parser.Parser):
         tmp_var = self.tmp_variable()
         self.append_stmts(statements,  node, {"new_array" : {"data_type": struct_name,
                                           "target": tmp_var}})
-        #print(node)
         index = 0
         for child_list in node.children:
             #这里只能用笨办法找成员struct的名字，懒得找
@@ -873,8 +869,6 @@ class Parser(common_parser.Parser):
         while child_declarator := self.find_child_by_field(declarators, "declarator"):
             declarators = child_declarator
             target = self.read_node_text(child_declarator)
-            #print(f"typedef{source_type}")
-            #print({"type_alias_decl" : {"target" : target, "source" : source_type}})
             self.append_stmts(statements,  node, {"type_alias_decl" : {"name" : target, "data_type" : source_type}})
 
     def internal_struct_init(self, node, statements, value, mytype, struct_name):

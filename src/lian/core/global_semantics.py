@@ -283,8 +283,6 @@ class P3GlobalSemanticAnalysis(P2PrelimSemanticAnalysis):
 
     def collect_external_symbol_states(self, frame: ComputeFrame, stmt_id, stmt, symbol_id, summary: MethodSummaryTemplate, old_key_state_indexes: set):
         # key_dynamic_content = summary.key_dynamic_content
-        # if self.options.debug:
-        #     print(f"@enter collect_external_symbol_states: symbol_id {symbol_id}, old_key_states {old_key_state_indexes}")
         if not frame.is_first_round[stmt_id]:
             return old_key_state_indexes
 
@@ -330,7 +328,6 @@ class P3GlobalSemanticAnalysis(P2PrelimSemanticAnalysis):
         # used_external_symbols[symbol_id] = {IndexMapInSummary(raw_index = index, new_index = -1) for index in new_state_indexes}
         # if self.options.debug:
         #     for index in new_state_indexes:
-        #         print(f"@exit collect_external_symbol_states: stmt_id {stmt_id}, symbol_id {symbol_id}, {frame.symbol_state_space[index]}")
         return new_state_indexes
 
     # def generate_analysis_summary_and_s2space(self, frame: ComputeFrame):
@@ -461,7 +458,3 @@ class P3GlobalSemanticAnalysis(P2PrelimSemanticAnalysis):
             self.loader.save_symbol_state_space_p3(entry_point, global_space)
 
         self.loader.save_call_paths_p3(self.path_manager.paths)
-
-        # if self.options.debug:
-        #       all_paths = self.loader.get_global_call_paths()
-        #       print("所有的APaths: ",all_paths)

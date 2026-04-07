@@ -995,7 +995,6 @@ class Parser(common_parser.Parser):
             new_body["methods"] = []
             new_body["nested"] = []
 
-            #print("class_body", class_body)
             self.class_body(class_body, new_body)
             self.append_stmts(statements, node, {
                 "class_decl": {

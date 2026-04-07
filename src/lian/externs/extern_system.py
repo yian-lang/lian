@@ -309,7 +309,6 @@ class ExternSystem:
                 self.exec_model_method(each_rule, data)
 
     def init(self):
-        #print("------------------")
         self.install_model_methods()
         self.install_configuration_rules()
 

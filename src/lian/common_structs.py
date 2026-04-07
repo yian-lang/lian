@@ -272,8 +272,8 @@ class SimpleWorkList:
                     entry_node = first_nodes[0]
 
             if entry_node:
-                # 这是为了防止晚执行节点被重复加入
-                # 例如这种情况：if () {1; } else {2; 3;} 4
+                # Prevent duplicate insertion of late-execution nodes
+                # For example: if () {1; } else {2; 3;} 4
                 cfg_order = list(reversed(list(
                     nx.dfs_postorder_nodes(self.graph, source = entry_node)
                 )))
@@ -646,12 +646,12 @@ class State(BasicElement):
             if not isinstance(k, str): 
                 keys_to_move.append((k, int(k)))
 
-        # 2. 执行原地移动
+        # 2. Execute in-place movement
         for old_k, new_k in keys_to_move:
             value = self.fields[old_k]
-            # 删除旧 key
+            # Remove the old key
             del self.fields[old_k]
-            # 赋值新 key
+            # Assign the new key
             self.fields[new_k] = value
 
     def to_dict(self, counter, _id):
@@ -727,7 +727,7 @@ class State(BasicElement):
         return hash((self.stmt_id, self.state_id))
 
     def recover_access_path_str(self) -> str:
-        """将state的access_path转换回a.b.c"""
+        """Convert the state access_path back to a.b.c format"""
         access_path_str = ""
         for access_point in self.access_path:
             access_path_str += access_point.key + "."
@@ -1211,13 +1211,13 @@ class SFGNode:
 
     # @profile
     def __init__(self, node_type=-1, def_stmt_id=-1, method_id=-1, index=-1, node_id=-1, context=None, stmt=None, name="ep", access_path=[]):
-        # 节点类型
+        # Node type
         self.node_type = node_type
-        # 这个节点被def的stmt_id
+        # The stmt_id where this node is defined
         self.def_stmt_id = def_stmt_id
-        # 这个节点在symbol state space中的索引
+        # Index of this node in the symbol state space
         self.index = index
-        # 这个节点的具体的id，一般是symbol_id或者state_id（根据node_type来判断）
+        # Specific ID of this node, typically symbol_id or state_id (determined by node_type)
         self.node_id = node_id
         self.name = name
         # context info: here we use 1-call, indicating which call_stmt calls current method (being tested)
@@ -1309,17 +1309,17 @@ class SFGEdge:
     round: the round number the edge is defined
     name: the edge name; it is usually used in field operations for indicating the field name
     """
-    # 边类型
+    # Edge type
     edge_type: int = -1
-    # 这条边是在哪里被定义的
+    # Location where this edge is defined
     stmt_id: int = -1
-    # 在第几个round被定义的
+    # The round in which this edge is defined
     round: int = -1
-    # 哪个阶段产生的这个边
+    # The phase that generated this edge
     #phase: int = -1
-    # 这个节点在所有兄弟节点序列中的位置，例如参数列表中的第几个参数
+    # Position of this node among its siblings, e.g., index in the parameter list
     pos: int = -1
-    # 连接的时候边的名字
+    # Name of the edge during connection
     name: str = ""
 
     def __hash__(self) -> int:
@@ -1371,12 +1371,12 @@ class SFGEdge:
 @dataclasses.dataclass
 class SourceSymbolScopeInfo:
     source_unit_id:int = -1
-    source_symbol_id:int = -1 # 也是source_decl_stmt_id
+    source_symbol_id:int = -1 # Also functions as source_decl_stmt_id
     decl_scope_id: int = -1
     current_symbol_id: int = -1
 
     def __post_init__(self):
-        # 实例化后，如果current_symbol_id未被显式赋值，则默认等于source_symbol_id
+        # After instantiation, defaults to source_symbol_id if current_symbol_id is not explicitly assigned
         if self.current_symbol_id == -1:
             self.current_symbol_id = self.source_symbol_id
 
@@ -1580,8 +1580,8 @@ class MethodSummaryTemplate:
     dynamic_call_stmts: set[int] = dataclasses.field(default_factory=set)
     this_symbols : dict[int, set[int]] = dataclasses.field(default_factory=dict)
     external_symbol_to_state : dict[int, int] = dataclasses.field(default_factory=dict)
-    raw_to_new_index: dict[int, int] = dataclasses.field(default_factory=dict) # 完整space中的原始索引到compact space中新索引的映射
-    index_to_default_value: dict[int, int] = dataclasses.field(default_factory=dict) # index -> default_value_symbol_id 的映射
+    raw_to_new_index: dict[int, int] = dataclasses.field(default_factory=dict) # Mapping from the original index in the full space to the new index in the compact space
+    index_to_default_value: dict[int, int] = dataclasses.field(default_factory=dict) # index -> default_value_symbol_id  mapping
 
     def copy(self):
         summary = MethodSummaryTemplate(
@@ -1782,7 +1782,6 @@ class BasicCallGraph(BasicGraph):
 class CallGraph(BasicGraph):
     def add_edge(self, caller_id, callee_id, call_stmt_id = None):
         if not self.graph.has_edge(caller_id, callee_id):
-            #print(f"add edge {caller_id} {call_stmt_id}")
             super().add_edge(caller_id, callee_id, weight=call_stmt_id)
         else:
             has_weight = False
@@ -2084,7 +2083,7 @@ class CallSite:
         return f"CallSite({self.caller_id}, {self.call_stmt_id}, {self.callee_id})"
 
     def to_tuple(self):
-        """将 CallSite 对象的核心属性转换为元组"""
+        """Convert the core attributes of the CallSite object to a tuple"""
         return (self.caller_id, self.call_stmt_id, self.callee_id)
 
     def has_negative(self):
@@ -2096,7 +2095,7 @@ class CallSite:
     def hash(self):
         return self.__hash__()
 
-@dataclasses.dataclass(frozen=True)  # frozen=True 使其不可变
+@dataclasses.dataclass(frozen=True)  # frozen=True Make it immutable
 class CallPath:
     path: tuple = dataclasses.field(default_factory=tuple)
 
@@ -2116,10 +2115,10 @@ class CallPath:
     def __getitem__(self, index):
         return self.path[index]
 
-    # 移除 __hash__ 和 __eq__，因为 dataclass 会自动生成
+    # Remove __hash__ and __eq__ as they are auto-generated by dataclass
 
     def to_tuple(self):
-        return self.path  # 已经是 tuple 了
+        return self.path  # Already a tuple
 
     def has_any_negative(self):
         for item in self.path:
@@ -2131,7 +2130,7 @@ class CallPath:
         return self.add_callsite(CallSite(caller_id, call_stmt_id, callee_id))
 
     def add_callsite(self, callsite: CallSite):
-        # 返回新对象而不是修改现有对象
+        # Return a new object instead of modifying the existing one
         return CallPath(self.path + (callsite,))
 
     def count_cycles(self):
@@ -2170,37 +2169,37 @@ class PathTrie:
         4. 如果新路径与已存在路径只是部分重叠（不同分支）-> 都保留
         """
 
-        # Step 1: 遍历新路径，检查是否与已存在路径冲突
+        # Step 1: Traverse the new path to check for conflicts with existing paths
         node = self.root
         for i, elem in enumerate(path.path):
             if elem not in node.children:
-                # 新路径在这里diverge，没有冲突，可以添加
+                # The new path diverges here; no conflicts, so it can be added
                 break
             node = node.children[elem]
 
-            # 检查当前节点是否是终点
+            # Check if the current node is a terminating node
             if node.is_terminal:
-                # 存在一个前缀路径
+                # A prefix path exists
                 if i + 1 == len(path.path):
-                    # 新路径和已存在路径完全相同
+                    # The new path is identical to an existing path
                     return False
                 else:
-                    # 新路径更长，已存在路径是其前缀
-                    # 这种情况需要删除前缀路径，继续添加新路径
-                    pass  # 后面会处理
+                    # The new path is longer, and the existing path is its prefix
+                    # Remove the prefix path and continue adding the new path
+                    pass  # Processed later
         else:
-            # 遍历完新路径的所有元素
-            # 检查当前节点是否是终点
+            # Completed traversal of all elements in the new path
+            # Check if the current node is a terminating node
             if node.is_terminal:
-                # 路径已存在
+                # Path already exists
                 return False
 
-            # 检查当前节点是否有子节点（即是否存在更长的路径）
+            # Check if the current node has child nodes (i.e., a longer path exists)
             if node.children:
-                # 存在以新路径为前缀的更长路径，拒绝新路径
+                # A longer path with the new path as a prefix exists; reject the new path
                 return False
 
-        # Step 2: 查找并删除是新路径严格前缀的已存在路径
+        # Step 2: Find and remove existing paths that are strict prefixes of the new path
         paths_to_remove = []
         node = self.root
         for i, elem in enumerate(path.path):
@@ -2209,15 +2208,15 @@ class PathTrie:
             node = node.children[elem]
 
             if node.is_terminal and i + 1 < len(path.path):
-                # 找到一个严格前缀路径
+                # Found a strict prefix path
                 paths_to_remove.append(node.path)
 
-        # 删除前缀路径
+        # Remove the prefix path
         for p in paths_to_remove:
             self.paths.discard(p)
             self._mark_non_terminal(p)
 
-        # Step 3: 插入新路径
+        # Step 3: Insert the new path
         node = self.root
         for elem in path.path:
             if elem not in node.children:
@@ -2254,11 +2253,11 @@ class PathTrie:
 
 class PathManager:
     def __init__(self):
-        self.trie = PathTrie()  # 新增
-        self.paths = set()      # 对外 view
+        self.trie = PathTrie()  # Added
+        self.paths = set()      # Public view
 
     def add_path(self, new_path: CallPath):
-        # 类型检查和业务逻辑保留
+        # Retain type checking and business logic
         if not isinstance(new_path, CallPath):
             util.error("@PathManager: Invalid path type", str(new_path))
             return False
@@ -2269,12 +2268,11 @@ class PathManager:
         if new_path in self.paths:
             return False
 
-        # 使用 Trie 处理前缀
+        # Use Trie for prefix matching
         ok = self.trie.add_path(new_path)
-        #print("ok:", ok)
         if ok:
-            # Trie 内部 paths 已更新
-            self.paths = set(self.trie.paths)   # 取终端路径集合
+            # Internal Trie paths updated
+            self.paths = set(self.trie.paths)   # Retrieve the set of terminal paths
         return ok
 
     def remove_path(self, removed_path):
@@ -2415,7 +2413,7 @@ class UnionFind:
         if x not in self.parent:
             self.parent[x] = x
 
-        # 路径压缩
+        # Path compression
         elif self.parent[x] != x:
             self.parent[x] = self.find(self.parent[x])
 
@@ -2442,7 +2440,7 @@ class UnionFind:
 
 @dataclasses.dataclass
 class CountStmtDefStateNode:
-    """查看不同语句类型创建的新state数量(debug用)"""
+    """Inspect the number of new states created by different statement types (for debugging purposes)"""
     stmt_id : int
     stmt_operation : str = ""
     in_states : set[int] = dataclasses.field(default_factory=set)
@@ -2486,4 +2484,3 @@ class CountStmtDefStateNode:
         ]
         node_dict = dataclasses.asdict(self)
         ordered_dict = {field: node_dict[field] for field in ordered_fields}
-        # print(ordered_dict)

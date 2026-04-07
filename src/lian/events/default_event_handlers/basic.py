@@ -97,31 +97,31 @@ def preprocess_abc_loop(data: EventData):
     code = data.in_data
     label_pattern = re.compile(r"^jump_label_\d+:")
     jmp_pattern = re.compile(r"jmp\s+(jump_label_\d+)")
-    # 用于存储已定义的 jump_label
+    # Used to store defined jump_labels
     defined_labels = set()
 
-    # 处理后的代码
+    # Processed code
     processed_lines = []
 
-    # 逐行处理代码
+    # Process code line by line
     for line_number, line in enumerate(code.splitlines(), start=1):
-        # 检查是否是 jump_label 的定义
+        # Check if it defines a jump_label
         label_match = label_pattern.match(line.strip())
         if label_match:
-            label = label_match.group(0)[:-1]  # 去掉冒号
+            label = label_match.group(0)[:-1]  # Remove colon
             defined_labels.add(label)
 
-        # 检查是否是 jmp 语句
+        # Check if it is a jmp statement
         jmp_match = jmp_pattern.search(line)
         if jmp_match:
             target_label = jmp_match.group(1)
-            if target_label in defined_labels:  # 如果目标标签已定义，说明是循环
+            if target_label in defined_labels:  # Loop structure: the target label is already defined
                 line = line.replace("jmp", "jmp_loop")
 
-        # 添加到结果中
+        # Add to results
         processed_lines.append(line)
 
-    # 输出结果
+    # Output results
     processed_code = "\n".join(processed_lines)
 
 def preprocess_python_import_statements(data: EventData):

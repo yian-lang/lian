@@ -7,11 +7,11 @@ from lian.config.constants import LIAN_INTERNAL
 
 @dataclasses.dataclass
 class StackFrame:
-    # default_factory=dict/list，防止多个StackFrame共享同一个可变默认对象。
+    # default_factory=dict/list，Prevent multiple StackFrames from sharing the same mutable default object.
     stmts: list
     variables: dict = dataclasses.field(default_factory=dict)
     in_block: bool = False
-    hoist_collector: list = dataclasses.field(default_factory=list) # 收集需要提升位置的variable_decl，在层级遍历结束后插入到开头（Python/ABC插入到函数/类开头，其他语言插入到 block 开头）
+    hoist_collector: list = dataclasses.field(default_factory=list) # Collect variable declarations that need hoisting. Insert them at the beginning after level traversal operations.
     index: int = 0
     to_delete_indices: list = dataclasses.field(default_factory=list) 
 
@@ -32,13 +32,13 @@ def recursive_remove_tmp_vars(obj):
     对于字典：递归处理所有值。
     """
     if isinstance(obj, list):
-        # 先处理当前列表层级的消除逻辑
+        # Process elimination logic at the current list level first
         remove_unnecessary_tmp_variables_in_list(obj)
-        # 然后递归深入子元素
+        # Recursively process child elements
         for item in obj:
             recursive_remove_tmp_vars(item)
     elif isinstance(obj, dict):
-        # 如果是字典，递归处理其所有值
+        # Recursively process all values if it is a dictionary
         for value in obj.values():
             recursive_remove_tmp_vars(value)
 
@@ -74,13 +74,13 @@ def remove_unnecessary_tmp_variables_in_list(stmts: list):
     if len(stmts) < 2:
         return
     
-    # 能产生临时变量的语句类型
+    # Statement types that can generate temporary variables
     CAN_OPTIMIZE_OPS = {
         "array_read", "assign_stmt", "call_stmt", "addr_of", 
         "field_read", "asm_stmt", "mem_read", "type_cast_stmt", "new_object"
     }
     
-    # 从后往前遍历，这样删除元素不会影响前面的索引
+    # Traverse backwards so element deletion does not affect previous indices
     for i in range(len(stmts) - 1, 0, -1):
         curr_op, curr_content = extract_stmt_info(stmts[i])
         if (curr_op != "assign_stmt" 
@@ -116,18 +116,18 @@ def remove_unnecessary_tmp_variables_in_list(stmts: list):
                 del stmts[i]
                 found_optimization = True
                 break
-            break #遇到了非定义和非冗余处理的语句，说明数据流被打断了，就停止搜索。
+            break #Stop searching upon encountering non-definition and non-redundant statements, indicating data flow disruption.
 
 
 def adjust_variable_decls(data: EventData):
     """
     调整变量声明：先清理临时变量，再处理变量声明的提升和去重。
     """
-    # 第一步：先执行临时变量清理，优化 GIR 结构
+    # Step 1: Perform temporary variable cleanup to optimize the GIR structure
     remove_unnecessary_tmp_variables(data)
     
     out_data = data.in_data
-    is_python_like = data.lang in ["python", "abc"] # 特殊处理 Python 和 ABC 语言
+    is_python_like = data.lang in ["python", "abc"] # Special handling for Python and ABC languages
     global_stmts_to_insert = []
 
     stack = [StackFrame(stmts=out_data)]
@@ -135,13 +135,13 @@ def adjust_variable_decls(data: EventData):
     while stack:
         frame = stack[-1] 
 
-        # === 阶段 1: 检查当前帧是否处理完毕 ===
+        # === Phase 1: Check if the current frame is completely processed ===
         if frame.index >= len(frame.stmts):
-            stack.pop() # 移除当前帧
+            stack.pop() # Remove current frame
             finalize_frame(frame, is_python_like)
             continue
 
-        # === 阶段 2: 获取当前语句并下移游标 ===
+        # === Phase 2: Fetch current statement and advance cursor ===
         stmt = frame.stmts[frame.index]
         current_stmt_index = frame.index
         frame.index += 1 
@@ -152,7 +152,7 @@ def adjust_variable_decls(data: EventData):
         key = list(stmt.keys())[0]
         value = stmt[key]
 
-        # === 阶段 3: 处理语句逻辑 (生成子任务或处理变量) ===
+        # === Phase 3: Process statement logic (generate sub-tasks or handle variables) ===
         sub_frames = []
         
         '''       
@@ -166,7 +166,7 @@ def adjust_variable_decls(data: EventData):
                     sub_frames.append(StackFrame(stmts=value[sub_key]))
 
         elif key == "method_decl":
-            # method_vars 用于把 形参名 当作已声明变量，避免在函数体里重复声明。
+            # method_vars Used to treat parameters as declared variables, avoiding duplicate declarations in the function body.
             method_vars: dict = {}
             if "parameters" in value:
                 for param in value["parameters"]:
@@ -191,8 +191,8 @@ def adjust_variable_decls(data: EventData):
         elif key.endswith("_stmt"):
             for sub_key, sub_val in value.items():
                 if sub_key.endswith("body") and isinstance(sub_val, list) and sub_val:
-                    # Python/ABC: block内声明最终要提升到“函数/类顶层”，因此复用同一个collector；
-                    # 其他语言: 每个block单独提升到该block的开头，因此新建collector。
+                    # Python/ABC: Declarations within blocks are ultimately hoisted to the top level of the function/class, sharing the same collector.
+                    # Other languages: Each block is hoisted to its own beginning, requiring a new collector.
                     next_collector = frame.hoist_collector if is_python_like else []
                     sub_frames.append(StackFrame(
                         stmts=sub_val, 
@@ -201,13 +201,13 @@ def adjust_variable_decls(data: EventData):
                         hoist_collector=next_collector
                     ))
 
-        # === 阶段 4: 将子任务压栈 ===
+        # === Phase 4: Push sub-tasks onto the stack ===
         if sub_frames:
-            # 倒序压栈，确保先处理第一个子任务
+            # Push in reverse order to ensure the first sub-task is processed first
             for sub_frame in reversed(sub_frames):
                 stack.append(sub_frame)
 
-    # 插入全局变量
+    # Insert global variables
     for stmt in global_stmts_to_insert:
         out_data.insert(0, stmt)
 
@@ -216,7 +216,7 @@ def adjust_variable_decls(data: EventData):
 
 
 def process_variable_decl(frame: StackFrame, value: dict, index: int, is_python_like: bool, global_stmts: list):
-    """处理变量声明的核心逻辑：判断是否重复、是否需要提升、是否删除"""
+    """Core logic for variable declarations: detect duplicates, orchestrate hoisting, and conduct deletions"""
     name = value.get("name")
     attrs = value.get("attrs", [])
     
@@ -225,7 +225,7 @@ def process_variable_decl(frame: StackFrame, value: dict, index: int, is_python_
             frame.to_delete_indices.append(index)
         else:
             frame.variables[name] = True
-            # Python/ABC: 总是提升变量声明 (包括 block 外)
+            # Python/ABC: Always hoist variable declarations (including outside blocks)
             frame.to_delete_indices.append(index)
             if frame.hoist_collector is not None:
                 frame.hoist_collector.append({"variable_decl": value})
@@ -255,28 +255,28 @@ def process_variable_decl(frame: StackFrame, value: dict, index: int, is_python_
 
 
 def finalize_frame(frame: StackFrame, is_python_like: bool):
-    """当前层级遍历结束后调用的清理函数"""
+    """Cleanup function invoked after traversal of current level ends"""
     stmts = frame.stmts
     
-    # 1. 执行删除
+    # 1. Execute deletion
     for idx in sorted(frame.to_delete_indices, reverse=True):
         if idx < len(stmts):
             stmts.pop(idx)
 
-    # 2. 变量提升
+    # 2. Variable hoisting
     if is_python_like:
-        # Python/ABC: 只有回到非 block 状态 (函数/类顶层) 才插入
+        # Python/ABC: Insert only when returning to a non-block state (function/class top level)
         if not frame.in_block and frame.hoist_collector:
             for stmt in frame.hoist_collector:
                 stmts.insert(0, stmt)
             frame.hoist_collector.clear()
     else:
-        # Other: 每层结束都插入 (实现 Block 内置顶)
+        # Other: Insert after each layer (implementing per-block hoisting)
         if frame.hoist_collector:
             for stmt in frame.hoist_collector:
                 stmts.insert(0, stmt)
     
-    # 3. block 结束，清理 let/const 变量
+    # 3. block  ends; perform let/const cleanup
     if not is_python_like and frame.in_block:
         vars_to_remove = [k for k, v in frame.variables.items() if v is False]
         for k in vars_to_remove:

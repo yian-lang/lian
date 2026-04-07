@@ -50,7 +50,6 @@ class ArgsParser:
         return self
 
     def merge_options(self, parsed_args):
-        # print("parsed_args", parsed_args)
         for key, value in vars(parsed_args).items():
             if util.is_available(value):
                 setattr(self.options, key, value)

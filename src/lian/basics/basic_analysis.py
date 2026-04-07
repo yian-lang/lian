@@ -117,7 +117,6 @@ class P1BasicSemanticAnalysis:
             if stmt_id in all_cfg_nodes:
                 frame.stmt_def_use_analysis.analyze_stmt(stmt_id, frame.unit_gir.get_stmt_by_id(stmt_id))
 
-        # print("frame.method_def_use_summary", frame.method_def_use_summary)
         self.loader.save_stmt_status_p1(method_id, frame.stmt_id_to_status)
         self.loader.save_symbol_state_space_p1(method_id, frame.symbol_state_space)
         self.loader.save_method_defined_symbols_p1(method_id, frame.defined_symbols)
@@ -148,8 +147,6 @@ class P1BasicSemanticAnalysis:
         containing_dynamic_callees = self.search_impacted_parent_nodes(graph, BASIC_CALL_GRAPH_NODE_KIND.DYNAMIC_METHOD)
         containing_error_callees = self.search_impacted_parent_nodes(graph, BASIC_CALL_GRAPH_NODE_KIND.ERROR_METHOD)
 
-        # print(containing_dynamic_callees)
-        # print(containing_error_callees)
         leaf_nodes = util.find_graph_nodes_with_zero_out_degree(graph)
 
         only_direct_callees = set()

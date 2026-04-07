@@ -93,7 +93,6 @@ class ModuleSymbolsLoader:
         self.unit_id_to_path = {}
 
     def save(self, module_symbol_results):
-        #print(module_symbol_results)
         self.module_symbol_table = DataModel(module_symbol_results)
         self._do_cache()
 
@@ -396,7 +395,6 @@ class UnitLevelLoader(GeneralLoader):
                 to_dict_result = item.to_dict()
             if not hasattr(to_dict_result, "unit_id"):
                 to_dict_result["unit_id"] = unit_id
-            #print("to_dict_result", to_dict_result)
             results.append(to_dict_result)
         return results
 
@@ -473,7 +471,6 @@ class ClassIDToMembersLoader(UnitLevelLoader):
 class SymbolNameToScopeIDsLoader(GeneralLoader):
     def query_flattened_item_when_loading(self, unit_id, bundle_data):
         flattened_item = bundle_data.query_index_column_value("unit_id", unit_id)
-        #print("flattened_item", flattened_item)
         return flattened_item
 
     def flatten_item_when_saving(self, unit_id, symbol_name_to_scope_ids):
@@ -488,8 +485,6 @@ class SymbolNameToScopeIDsLoader(GeneralLoader):
 
     def unflatten_item_dataframe_when_loading(self, _id, item_df):
         symbol_name_to_scope_ids = {}
-        # print(777777777777777777777)
-        # print(type(item_df), item_df)
         for row in item_df:
             symbol_name_to_scope_ids[row.symbol_name] = set(row.scope_ids)
         return symbol_name_to_scope_ids
@@ -1154,7 +1149,6 @@ class SymbolStateSpaceLoader(MethodLevelAnalysisResultLoader):
                             state_id = access_path_point['state_id']
                         )
                     )
-                #print(row.get_whole_str())
                 tangping_elements = json.loads(row.tangping_elements)
                 if isinstance(tangping_elements, list):
                     tangping_elements = set(tangping_elements)
@@ -1522,7 +1516,7 @@ class CallPathLoader:
         :return: 公共祖先节点 (如果不存在则返回 None)
         """
 
-        # 1. 构建 {子节点: 父节点} 的映射字典
+        # 1. 构建 {子节点: 父节点}  mapping字典
         # 假设边是有向的: src -> dst (父 -> 子)
         call_path = None
         for path in self.all_paths:
@@ -1539,7 +1533,6 @@ class CallPathLoader:
             parent_map[call_site.callee_id] = call_site.caller_id
             all_nodes.add(call_site.caller_id)
             all_nodes.add(call_site.callee_id)
-        #print(parent_map)
         # 如果输入的节点不在树中，直接返回 None
         if node1 not in all_nodes or node2 not in all_nodes:
             return None
@@ -1672,7 +1665,7 @@ class ImportGraphLoader:
         return self.get_successor_nodes_from_ids(successor_ids)
 
     def get_edges_and_nodes_with_edge_attrs(self, node_id, attr_dict: dict):
-        """attr可以是：real_name, weight(edge_kind), site(import_stmt_id), symbol_type(该节点类型)"""
+        """attr可以是：real_name, weight(edge_kind), site(import_stmt_id), symbol_type(该Node type)"""
         edge_node_list = util.graph_successors_with_edge_attrs(self.import_graph, node_id, attr_dict)
         return [self.EdgeNodePair(edge, self.get_successor_nodes_from_ids(node_index)) for edge, node_index in edge_node_list]
 
@@ -1893,7 +1886,6 @@ class GroupedMethodsLoader:
 
 class SymbolGraphLoader(MethodLevelAnalysisResultLoader):
     def unflatten_item_dataframe_when_loading(self, _id, item_df):
-        # print("@SymbolGraphLoader@item_df", item_df)
         method_id = _id
         symbol_graph = SymbolGraph(method_id)
         for row in item_df:
@@ -1941,7 +1933,6 @@ class SymbolGraphLoader(MethodLevelAnalysisResultLoader):
                     "stmt_id": int(dst_node),
                     "edge_type": edge_type
                 })
-        # print(edges)
         return edges
 
 class StateFlowGraphLoader(MethodLevelAnalysisResultLoader):
@@ -1967,7 +1958,6 @@ class StateFlowGraphLoader(MethodLevelAnalysisResultLoader):
                 "edge": edge.to_tuple(),
                 "dest_node": dst_node.to_tuple(),
             })
-        # print(edges)
         return edges
 
 ############################################################
@@ -2487,11 +2477,9 @@ class Loader:
         new_method_gir = []
         for stmt in method_gir:
             stmt_to_dict = stmt.copy().to_dict()
-            #print("stmt:", stmt_to_dict)
             for column in GIR_COLUMNS_TO_BE_ADDED:
                 if column in stmt_to_dict:
                     if isinstance(stmt_to_dict[column], (int, float)) and (stmt_to_dict[column] > 0):
-                        #print("stmt_to_dict[column]:", stmt_to_dict[column])
                         stmt_to_dict[column] += interval
             new_method_gir.append(stmt_to_dict)
 
@@ -2509,7 +2497,6 @@ class Loader:
         method_gir = self._get_whole_method_gir(method_id)
         if len(method_gir) == 0:
             return -1
-        #print(method_gir)
         new_method_id = self._clone_method_gir(unit_id, method_id, method_gir, new_name)
         self.add_method_id_to_unit_id(new_method_id, unit_id)
         #self._clone_method_symbol_state_space_p1(method_id, stmt_ids, new_method_id)
@@ -2530,14 +2517,12 @@ class Loader:
 
     def export(self):
         for loader in self._all_loaders:
-            # print("loader export", loader)
             loader.export()
             if hasattr(loader, 'export_indexing'):
                 loader.export_indexing()
 
     def restore(self):
         for loader in self._all_loaders:
-            # print(type(loader))
             if hasattr(loader, 'restore_indexing'):
                 #util.debug(loader.__class__.__name__ + " is restoring index")
                 try:
@@ -3407,7 +3392,6 @@ class Loader:
     #         if end_index == -1:
     #             continue
     #
-    #         print(call_path)
     #         # while index < len(methods):
 
     def get_parent_class_by_class_name(self, class_name):

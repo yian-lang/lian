@@ -72,7 +72,7 @@ class EventManager:
         # if self.options.debug:
         #     self.list_installed_handlers()
 
-    # 旧版 按照语言收集插件 执行插件顺序和注册顺序不同。新版按照注册顺序执行
+    # Execute plugins in registration order.
     # def add_handler(self, handler_list, func, langs):
     #     # default_list = handler_list.get(config.ANY_LANG, [])
     #     handler_list.append()

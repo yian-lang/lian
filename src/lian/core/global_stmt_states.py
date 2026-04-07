@@ -141,7 +141,6 @@ class GlobalStmtStates(StmtStates):
                 classes_of_method.append(instance_state.value)
 
         if len(callee_ids_to_be_analyzed) != 0:
-            # print(f"callee_ids_to_be_analyzed: {callee_ids_to_be_analyzed}")
             this_class_ids = []
             name_symbol_index = status.used_symbols[0]
             name_symbol = self.frame.symbol_state_space[name_symbol_index]
