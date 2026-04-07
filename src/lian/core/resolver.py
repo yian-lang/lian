@@ -67,14 +67,12 @@ class Resolver:
             return result
 
         if class_name not in summary.symbol_name_to_scope_ids:
-            # print(f"scope里没有class_name {class_name}")
             return result
 
         scope_ids = summary.symbol_name_to_scope_ids[class_name]
         available_scope_ids = summary.scope_id_to_available_scope_ids.get(scope_id, set([0]))
         target_scope_ids = available_scope_ids & scope_ids
-        # print("=" * 60)
-        # print(scope_ids, available_scope_ids, summary, stmt_id)
+
         if len(target_scope_ids) == 0:
             return result
 
@@ -149,15 +147,13 @@ class Resolver:
         self.implicit_root_scopes_cache.put(unit_id, implicit_root_scopes)
         return implicit_root_scopes
 
-    def resolve_symbol_source_decl(self, unit_id, stmt_id, symbol_name:str, source_symbol_must_be_global = False):
+    def resolve_symbol_source_decl(self, unit_id, stmt_id, symbol_name:str, unit_symbol_decl_summary, source_symbol_must_be_global = False):
         # if symbol_name == LIAN_INTERNAL.THIS:
         #     return SourceSymbolScopeInfo(unit_id, config.BUILTIN_THIS_SYMBOL_ID, -1)
         # default return value
         default_return = SourceSymbolScopeInfo(unit_id, -1, -1)
         if util.is_empty(symbol_name):
             return default_return
-
-        unit_symbol_decl_summary: UnitSymbolDeclSummary = self.loader.get_unit_symbol_decl_summary(unit_id)
 
         if source_symbol_must_be_global:
             global_scope_id = 0
@@ -204,19 +200,12 @@ class Resolver:
             else:
                 state_index_set_copy.add(index)
 
-        # print(f"newest_remaining: {newest_remaining}")
         state_index_to_id = {}
         for index in state_index_set_copy:
             state_index_to_id[index] = frame.symbol_state_space.convert_state_index_to_state_id(index)
 
-        # print("@collect_newest_states_by_state_indexes")
-        # print("state_index_set_copy: ", state_index_set_copy)
-        # print("state_index_set: ", state_index_set)
-
         result = set()
-        # if frame.method_id == 20:
-        #     print(f"available_state_defs: {available_state_defs}")
-        #     print("frame.defined_states[12]",frame.defined_states[12])
+
         for state_index in state_index_to_id:
             state_id = state_index_to_id[state_index]
             if state_id in frame.defined_states:
@@ -231,7 +220,6 @@ class Resolver:
             # 如果不在frame.defined_states中，就返回自身
             else:
                 result.add(state_index)
-        # print(f"result: {result}")
 
         return result | newest_remaining
 
@@ -295,7 +283,6 @@ class Resolver:
         return parent_state_id
 
     def get_this_state(self, caller_frame: ComputeFrame, new_indexes: set):
-        # print("进入get_this_state")
         call_stmt_id = caller_frame.stmt_worklist.peek()
         stmt = self.loader.get_stmt_gir(call_stmt_id)
         if stmt.operation != "call_stmt":
@@ -329,17 +316,14 @@ class Resolver:
         call_stmt_id = caller_frame.stmt_worklist.peek()
         current_space = caller_frame.symbol_state_space
         source_states.clear()
-        # print(f"{callee_id, caller_id, call_stmt_id} load_parameter_mapping")
         parameter_mapping_list: list[ParameterMapping] = self.loader.get_parameter_mapping_p2(callee_frame.call_site)
-        # print("parameter_mapping_list")
-        # pprint.pprint(parameter_mapping_list)
+
         if not parameter_mapping_list:
             return state_symbol_id
 
         arg_fields = {}
         arg_array = []
         for each_mapping in parameter_mapping_list:
-            # print(f"each_mapping: {each_mapping}")
             if each_mapping.parameter_symbol_id != state_symbol_id:
                 continue
 
@@ -365,7 +349,6 @@ class Resolver:
                     source_states.add(each_mapping.arg_index_in_space)
                 continue
 
-            # print(f"arg_source_symbol_id: {arg_source_symbol_id}")
             if arg_source_symbol_id not in caller_frame.defined_symbols:
                 return arg_source_symbol_id
 
@@ -373,14 +356,12 @@ class Resolver:
                 LIAN_INTERNAL.PACKED_POSITIONAL_PARAMETER, LIAN_INTERNAL.PACKED_NAMED_PARAMETER
             ):
                 parameter_access_path = each_mapping.parameter_access_path
-                # print(f"parameter_access_path: {parameter_access_path}")
                 for access_point in arg_access_path:
                     if (
                         access_point.kind in (ACCESS_POINT_KIND.FIELD_ELEMENT, ACCESS_POINT_KIND.ARRAY_ELEMENT) and
                         access_point.key == parameter_access_path.key and
                         access_point.kind == parameter_access_path.kind
                     ):
-                        # print(f"remove access_point: {access_point}")
                         arg_access_path.remove(access_point)
                         break
                 # if parameter_access_path != arg_access_path[0]:
@@ -417,8 +398,7 @@ class Resolver:
         return state_symbol_id
 
     def get_latest_source_state_indexes(self, current_frame: ComputeFrame, state_symbol_id):
-        # if self.options.debug:
-        #     print(f"get_latest_source_state_indexes: method_id {current_frame.method_id}, state_symbol_id: {state_symbol_id}")
+
         current_space = current_frame.symbol_state_space
         current_stmt_id = current_frame.stmt_worklist.peek()
         current_status = current_frame.stmt_id_to_status[current_stmt_id]
@@ -426,9 +406,7 @@ class Resolver:
         available_symbol_defs: set = current_frame.symbol_bit_vector_manager.explain(current_status.in_symbol_bits)
         reachable_symbol_defs: set = available_symbol_defs & current_frame.defined_symbols[state_symbol_id]
         available_state_defs = current_frame.state_bit_vector_manager.explain(current_status.in_state_bits)
-        # print(f"available_symbol_defs: {available_symbol_defs}")
-        # print(f"reachable_symbol_defs: {reachable_symbol_defs}")
-        # print(f"available_state_defs: {available_state_defs}")
+
         source_state_indexes = set()
 
         if len(reachable_symbol_defs) == 0:
@@ -454,7 +432,6 @@ class Resolver:
 
         state_index_old_to_new = {} # TODO：2024.11.14 是否可以优化，从而不用再新创一个state？
         latest_source_state_indexes = self.retrieve_latest_states(current_frame, current_stmt_id, current_space, source_state_indexes, available_state_defs, state_index_old_to_new) # 拿source_state的最新状态
-        # print(f"\nlatest_source_state_indexes in get_latest_source_state_indexes: {latest_source_state_indexes}")
         return latest_source_state_indexes
 
     # def get_sub_space(self, current_frame, current_space:SymbolStateSpace, latest_source_state_indexes, new_indexes):
@@ -527,10 +504,6 @@ class Resolver:
         if not arg_access_path:
             return source_state_indexes.copy()
 
-        # print("get_state_from_path方法")
-        # print(f"source_state_indexes: {source_state_indexes}")
-        # print(f"arg_access_path: {arg_access_path}")
-
         new_source_states = source_state_indexes.copy()
         for one_point in arg_access_path:
             tmp_indexes = set()
@@ -591,8 +564,7 @@ class Resolver:
         # -find the corresponding states based on the bit vector
 
         source_symbol_id = state.source_symbol_id
-        # if self.options.debug:
-        #     print(f"\n\n进入resolve_symbol_states\nresolve_symbol_states@ state_symbol_id: {state_symbol_id} \nresolving_state: {state}\n")
+
         access_path = state.access_path.copy()
         data_type = state.data_type
         current_space = None
@@ -606,14 +578,11 @@ class Resolver:
             if current_frame.is_meta_frame:
                 break
 
-            # if self.options.debug:
-                # print(f"--current method id: {current_frame.method_id} state_symbol_id: {state_symbol_id} access_path: {access_path}")
             if len(current_frame.stmt_worklist) == 0:
                 continue
 
             if data_type == LIAN_INTERNAL.THIS or source_symbol_id == frame.method_def_use_summary.this_symbol_id:
-                # if self.options.debug:
-                #     print("resolve_symbol_states 在找this")
+
                 caller_frame = frame_stack[current_frame_index - 1]
                 if caller_frame.is_meta_frame:
                     break
@@ -622,12 +591,10 @@ class Resolver:
                 #current_space = self.get_this_state(caller_frame, source_state_indexes)
 
                 self.get_this_state(caller_frame, source_state_indexes)
-                # print(f"source_state_indexes before get_state_from_path: {source_state_indexes}")
 
             else:
                 if self.loader.is_method_decl(source_symbol_id):
-                    # if self.options.debug:
-                    #     print(f"state_source_symbol_id {state_symbol_id} is method_decl")
+
                     new_state = State(
                         stmt_id = stmt_id,
                         source_symbol_id = source_symbol_id,
@@ -638,8 +605,7 @@ class Resolver:
                     return {current_space.add(new_state)}
 
                 elif self.loader.is_class_decl(source_symbol_id):
-                    # if self.options.debug:
-                    #     print(f"state_source_symbol_id {state_symbol_id} is class_decl")
+
                     new_state = State(
                         stmt_id = stmt_id,
                         source_symbol_id = source_symbol_id,
@@ -650,15 +616,13 @@ class Resolver:
                     return {current_space.add(new_state)}
 
                 if source_symbol_id not in current_frame.defined_symbols:
-                    # if self.options.debug:
-                    #     print("state_symbol_id not in current_frame.defined_symbols")
+
                     continue
 
                 if self.loader.is_parameter_decl_of_method(source_symbol_id, current_frame.method_id):
                     caller_frame = frame_stack[current_frame_index - 1]
                     if caller_frame.is_meta_frame:
                         continue
-                    # print("From Parameter Decl")
                     # 根据parameter找到对应的arg，并更新所在frame以及state_symbol_id。
                     #(inferred_symbol_id, source_states_related_space) = self.infer_arg_from_parameter(caller_frame, current_frame, source_symbol_id, access_path, source_state_indexes)
                     inferred_symbol_id = self.infer_arg_from_parameter(caller_frame, current_frame, source_symbol_id, access_path, source_state_indexes)
@@ -674,11 +638,6 @@ class Resolver:
 
         if current_frame.is_meta_frame:
             return return_indexes
-
-        # if self.options.debug:
-        #     print(f"\nsource_state_indexes before get_state_from_path: {source_state_indexes}")
-        #     print(f"current_space:{current_space}")
-        #     print(f"access_path: {access_path}")
         # 根据source state的access_path找到目标state
         accessed_states = self.get_state_from_path(current_space, access_path, source_state_indexes)
         # if self.options.debug:
@@ -785,28 +744,19 @@ class Resolver:
         ):
         state = caller_frame.symbol_state_space[state_index]
         access_path = state.access_path
-        # print(f"\nresolve_anything_with_same_src_symbol_in_summary_generation state_index {state_index} id_set_to_update {id(set_to_update)} path {access_path}\nbegin========= ")
 
         state_identifier = id(access_path)
         # 循环依赖或没有fields或a.f=a
         if state_identifier in self.resolve_anything_with_same_src_symbol_in_summary_generation.processing_list\
             or not state.fields \
             or len(access_path) == 1:
-            # print(set_to_update)
             set_to_update.discard(state_index)
-            # if self.options.debug:
-            #     if not state.fields:
-            #         print("进入的state没有fields(a.f=a.g) 延迟更新")
-            #     elif len(access_path) == 1:
-            #         print("出现a.f=a，延迟更新")
-            #     else:
-            #         print("出现循环依赖 延迟更新 ")
+
             if util.is_available(set_to_update):
                 deferred_index_update = DeferedIndexUpdate(
                     state_index = state_index, state_symbol_id = parameter_symbol_id, stmt_id = stmt_id,
                     arg_state_indexes = arg_state_indexes, access_path = access_path, set_to_update = set_to_update
                     )
-                # print(f"rs 添加延迟更新 {deferred_index_update}")
                 deferred_index_updates.add(deferred_index_update)
             return None
         self.resolve_anything_with_same_src_symbol_in_summary_generation.processing_list.add(state_identifier)
@@ -818,17 +768,14 @@ class Resolver:
             for field_index in field_indexes:
                 field_state = caller_frame.symbol_state_space[field_index]
                 if field_state.state_type != STATE_TYPE_KIND.ANYTHING: # field_state.g=1
-                    # print(f"遍历该state的fields：field_name为<{field_name}>,state不是anything")
                     continue
                 elif field_state.source_symbol_id != parameter_symbol_id: # field_state.g=external
-                    # print(f"遍历该state的fields：field_name为<{field_name}>的anything_state的source不是自己")
                     self.resolve_anything_in_summary_generation(
                         field_index, caller_frame, stmt_id, callee_id, deferred_index_updates,
                         created_state.fields[field_name], parameter_symbol_id
                     )
                     change_flag = True
                 else: # v1.g=v2 或 field_state.g=a.*
-                    # print(f"遍历该state的fields：field_name为<{field_name}>的anything_state的source还是自己，递归")
                     set_to_update.discard(state_index)
                     created_state.fields[field_name].discard(field_index)
                     new_state_index = self.resolve_anything_with_same_src_symbol_in_summary_generation(
@@ -848,10 +795,8 @@ class Resolver:
                 return_index
                 )
             self.resolve_anything_with_same_src_symbol_in_summary_generation.processing_list.discard(state_identifier)
-            # print("有变化，返回",return_index)
             return return_index
         else:
-            # print("没变化 进来的什么就返回什么",state_index)
             util.add_to_dict_with_default_set(
                 self.resolve_anything_with_same_src_symbol_in_summary_generation.result_cache,
                 state_index,

@@ -59,7 +59,7 @@ for ITEM in "$TARGET_DIR"/*; do
 
     # 执行核心命令：最后一个参数替换为当前项（目录/文件）的路径
     python -m kernprof -o /tmp/line_profiler.lprof -lvr -u 1e-3 -z \
-    /home/corgi/workspace/lian/src/lian/main.py run -l java -f --nomock \
+    /home/corgi/workspace/lian/src/lian/main.py run -l javascript -f --nomock \
     --graph --benchmark -w /tmp/lian_workspacee \
     "$ITEM_PATH" \
     > "$LOG_FILE" 2>&1

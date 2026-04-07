@@ -435,7 +435,6 @@ class ImportHierarchy:
         )
         external_symbols.append(fake_node)
 
-        #print(external_symbols)
         return external_symbols
 
     def analyze_unit_import_stmts(self, unit_id):
@@ -456,7 +455,6 @@ class ImportHierarchy:
         for each_stmt in import_stmts:
             self.analyze_import_stmt(unit_id, unit_info, each_stmt, results)
 
-        #print("save_unit_export_symbols:", unit_id, results)
 
         self.loader.save_unit_export_symbols(unit_id, results)
 

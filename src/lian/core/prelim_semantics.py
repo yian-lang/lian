@@ -166,7 +166,6 @@ class P2PrelimSemanticAnalysis:
         )
         frame.method_def_use_summary = self.loader.get_method_def_use_summary(method_id)
         frame.all_local_symbol_ids = frame.method_def_use_summary.local_symbol_ids
-        #print(frame.method_def_use_summary)
 
         self.adjust_defined_symbols_and_init_bit_vector(frame, method_id)
         self.adjust_defined_states_and_init_bit_vector(frame, method_id)
@@ -244,9 +243,7 @@ class P2PrelimSemanticAnalysis:
                     state_type = STATE_TYPE_KIND.UNSOLVED
                 )
                 defined_symbol.states.add(frame.symbol_state_space.add(new_state))
-                # print("本句语句的defined_symbol没有被解析出任何状态,生成一个UNSOLVED状态给它",defined_symbol.states)
 
-        # print("@update_out_states new_defined_state_set", new_defined_state_set)
         return new_defined_state_set
 
     def update_symbols_if_changed(
@@ -296,7 +293,6 @@ class P2PrelimSemanticAnalysis:
             defined_symbol = frame.symbol_state_space[defined_symbol_index]
             if not isinstance(defined_symbol, Symbol):
                 continue
-            # pprint.pprint(defined_symbol)
             symbol_id = defined_symbol.symbol_id
             key = SymbolDefNode(index = defined_symbol_index, symbol_id = symbol_id, stmt_id = stmt_id)
             if key in current_bits:
@@ -389,8 +385,6 @@ class P2PrelimSemanticAnalysis:
             )
 
         status.out_symbol_bits = current_bits
-        # print("rerun_new_out_bits")
-        # print(frame.symbol_bit_vector_manager.explain(current_bits))
 
         # check if the out bits are changed
         self.update_symbols_if_changed(
@@ -399,14 +393,9 @@ class P2PrelimSemanticAnalysis:
 
     def check_reachable_symbol_defs(self, stmt_id, frame: ComputeFrame, status, used_symbol_index, used_symbol: Symbol, available_symbol_defs):
         used_symbol_id = used_symbol.symbol_id
-        # print(f"stmt_id: {stmt_id}, used_symbol: {used_symbol.name}")
         reachable_symbol_defs = set()
-        # print(f"in check reachable: {frame.defined_symbols}")
         if used_symbol_id in frame.defined_symbols:
-            # print(f"used_symbol: {frame.defined_symbols[used_symbol_id]}")
-            # print(f"available_symbol_defs: {available_symbol_defs}")
-            reachable_symbol_defs = available_symbol_defs & frame.defined_symbols[used_symbol_id]           
-            # print(reachable_symbol_defs)
+            reachable_symbol_defs = available_symbol_defs & frame.defined_symbols[used_symbol_id]
         else:
             if used_symbol_id not in frame.all_local_symbol_ids:
                 if used_symbol_id not in frame.method_def_use_summary.used_external_symbol_ids:
@@ -685,8 +674,6 @@ class P2PrelimSemanticAnalysis:
 
         if used_symbol.name == LIAN_INTERNAL.THIS:
             new_state.data_type = LIAN_INTERNAL.THIS
-            # new_state.symbol_or_state = SymbolOrState.EXTERNAL_KEY_STATE
-            # method_summary.dynamic_call_stmts.add(stmt_id)
 
         # util.add_to_dict_with_default_set(frame.used_external_symbol_id_to_state_id_set, symbol_id, new_state.state_id)
         index = frame.symbol_state_space.add(new_state)
@@ -724,7 +711,6 @@ class P2PrelimSemanticAnalysis:
         return return_indexes
 
     def complete_in_states_and_check_continue_flag(self, stmt_id, frame: ComputeFrame, stmt, status, in_states, method_summary: MethodSummaryTemplate):
-        # print("@in_states before", in_states)
         if stmt.operation == "parameter_decl":
             return True
 
@@ -868,18 +854,13 @@ class P2PrelimSemanticAnalysis:
             adjusted_states = self.resolver.collect_newest_states_by_state_indexes(
                 frame, stmt_id, defined_symbol.states, available_state_defs, old_index_ceiling
             )
-            # if self.options.debug:
-            #     print(f"\ndefined_symbol: {defined_symbol.name} {defined_symbol.symbol_id}")
-            #     print(f"defined_symbol.states: {defined_symbol.states}")
-            #     print(f"adjusted_states: {adjusted_states}")
+
             defined_symbol.states = adjusted_states
 
         adjusted_states = self.resolver.collect_newest_states_by_state_indexes(
             frame, stmt_id, status.defined_states, available_state_defs, old_index_ceiling
         )
-        # if self.options.debug:
-        #     print(f"status.defined_states: {status.defined_states}")
-        #     print(f"adjusted_states: {adjusted_states}")
+
         status.defined_states = adjusted_states
 
     @profile
@@ -940,7 +921,6 @@ class P2PrelimSemanticAnalysis:
         if not symbol_graph.has_node(stmt_id) :
             return P2ResultFlag()
 
-        # 收集输入状态位
         # collect in state bits
         old_defined_symbol_states = set()
         defined_symbol = frame.symbol_state_space[status.defined_symbol]
@@ -954,7 +934,6 @@ class P2PrelimSemanticAnalysis:
         status.in_state_bits = self.collect_in_state_bits(stmt_id, stmt, frame)
         # reset defined_states
         status.defined_states = set()
-        # 收集输入状态
         # collect in state
 
         in_symbol_indexes = self.get_used_symbol_indexes(stmt_id, frame, status)
@@ -972,7 +951,6 @@ class P2PrelimSemanticAnalysis:
         util.debug("before stmt_state_analysis")
         change_flag: P2ResultFlag = frame.stmt_state_analysis.run(stmt_id, stmt, status, in_states, used_symbol_id_to_indexes)
         if change_flag is None:
-            # print(f"  NO CHANGE")
             change_flag = P2ResultFlag()
 
         self.adjust_computation_results(stmt_id, frame, status, old_index_ceiling)
@@ -1002,7 +980,6 @@ class P2PrelimSemanticAnalysis:
             frame.stmts_with_symbol_update.add(
                 self.get_next_stmts_for_state_analysis(stmt_id, symbol_graph)
             )
-        # print(f"out_symbol_bits: {frame.symbol_bit_vector_manager.explain(status.out_symbol_bits)}")
 
         if change_flag.state_changed or change_flag.symbol_def_changed:
             self.add_sfg_edge_of_defined_symbol_to_state(stmt_id, stmt, status, frame, old_defined_symbol_states)
@@ -1017,7 +994,6 @@ class P2PrelimSemanticAnalysis:
                 continue
             state_id = state.state_id
             util.add_to_dict_with_default_set(state_id_to_indexes, state_id, index)
-        # print("group_states_with_state_ids@ state_id_to_indexes",state_id_to_indexes)
         return state_id_to_indexes
 
     def update_method_def_use_summary(self, stmt_id, frame: ComputeFrame):
@@ -1031,7 +1007,6 @@ class P2PrelimSemanticAnalysis:
             if symbol_id in frame.all_local_symbol_ids:
                 continue
             # only keyword global and nonlocal symbol can be added in defined_external_symbol_ids in python
-            # summary.defined_external_symbol_ids.add(symbol_id)
 
         for symbol_id in status.implicitly_used_symbols:
             if symbol_id in frame.all_local_symbol_ids:
@@ -1061,7 +1036,6 @@ class P2PrelimSemanticAnalysis:
         all_indexes = set()
 
         for stmt_id in util.find_cfg_last_nodes(frame.cfg):
-            # all_newest_states_indexes = set()
             stmt = frame.unit_gir.get_stmt_by_id(stmt_id)
             status = frame.stmt_id_to_status[stmt_id]
             current_symbol_bits = status.out_symbol_bits
@@ -1183,7 +1157,6 @@ class P2PrelimSemanticAnalysis:
             method_summary.adjust_ids(compact_space.old_index_to_new_index)
             self.save_analysis_summary_and_space(frame, method_summary, compact_space)
         return method_summary
-        # print(f"dynamic_call_stmts: {frame.method_summary_template.dynamic_call_stmts}")
 
     @profile
     def analyze_stmts(self, frame: ComputeFrame):
@@ -1205,7 +1178,6 @@ class P2PrelimSemanticAnalysis:
             else:
                 if frame.stmt_counters[stmt_id] < self.max_analysis_round:
                     frame.stmt_worklist.add(util.graph_successors(frame.cfg, stmt_id))
-                    # print("添加cfg后继",list(util.graph_successors(frame.cfg, stmt_id)))
                 else:
                     frame.stmt_worklist.pop()
                     continue
@@ -1232,12 +1204,6 @@ class P2PrelimSemanticAnalysis:
                 self.rerun_analyze_reachable_symbols(stmt_id, stmt, frame, result_flag)
                 # update method def/use
                 self.update_method_def_use_summary(stmt_id, frame)
-
-            # global stmt_counts
-            # stmt_counts += 1
-            # if stmt_counts % 2000 == 0:
-                # print(f"第{stmt_counts/2000}轮打印stmt_states情况")
-                # self.print_count_stmt_def_states()
 
             frame.stmt_worklist.pop()
             frame.stmt_counters[stmt_id] += 1
@@ -1275,8 +1241,7 @@ class P2PrelimSemanticAnalysis:
         frame_stack = ComputeFrameStack().add(current_frame)
         while len(frame_stack) != 0:
             frame = frame_stack.peek()
-            # if not self.options.quiet:
-            #     print(f"Analyzing <method {frame.method_id}>")
+
 
             if not frame.has_been_inited:
                 if not self.options.quiet:
@@ -1352,7 +1317,6 @@ class P2PrelimSemanticAnalysis:
         sorted_stmts_nodes = sorted(filtered_stmts_nodes, key=lambda x: x.new_out_states_len, reverse=True)
         counter = 0
         for node in sorted_stmts_nodes:
-            # node.print_as_beautiful_dict()
             if counter >= 20:
                 break
             counter+=1

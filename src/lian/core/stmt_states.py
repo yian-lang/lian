@@ -479,7 +479,6 @@ class StmtStates:
         return set()
 
     def run(self, stmt_id, stmt, status: StmtStatus, in_states, used_symbol_id_to_indexes):
-        # print("status.operation:", status.operation)
         self.used_symbol_id_to_indexes = used_symbol_id_to_indexes
         handler = self.state_analysis_handlers.get(stmt.operation, None)
         result = None
@@ -588,7 +587,6 @@ class StmtStates:
 
         key_state.symbol_or_state = SYMBOL_OR_STATE.EXTERNAL_KEY_STATE
         key_dynamic_content = self.frame.method_summary_template.key_dynamic_content
-        # print("tag_key_state_flag@add_state_index",state_index)
         util.add_to_dict_with_default_set(
             key_dynamic_content, symbol_id, state_index
         )
@@ -606,7 +604,6 @@ class StmtStates:
             each_state = self.frame.symbol_state_space[each_state_index]
             if not isinstance(each_state, State):
                 continue
-            # print("each_state:", each_state)
             if len(each_state.fields) != 0 or len(each_state.array) != 0 or len(each_state.tangping_elements) != 0:
                 condition_flag |= CONDITION_FLAG.TRUE_PATH
             else:
@@ -621,7 +618,6 @@ class StmtStates:
                 break
 
         return P2ResultFlag(condition_path_flag=condition_flag)
-        # return P2ResultFlag()
 
     def update_access_path_state_id(self, state_index):
         state = self.frame.symbol_state_space[state_index]
@@ -640,7 +636,6 @@ class StmtStates:
         defined_symbol = self.frame.symbol_state_space[defined_symbol_index]
         defined_symbol_states = set()
 
-        # print(f"loop_total_rounds: {self.frame.loop_total_rounds[stmt_id]}")
         if not isinstance(defined_symbol, Symbol):
             return P2ResultFlag()
 
@@ -800,16 +795,11 @@ class StmtStates:
             tmp_value2 = f'{tmp_value2}'
 
         try:
-            # print(tmp_value1, tmp_value2, operator)
             value = util.strict_eval(f"{tmp_value1} {operator} {tmp_value2}")
         except:
             # value = ""
             value = str(value1) + str(operator) + str(value2)
             data_type = LIAN_INTERNAL.STRING
-
-        # else:
-        #     value = str(value1) + str(operator) + str(value2)
-        #     data_type = LianInternal.STRING
 
         if value:
             result_state_index = self.create_state_and_add_space(
@@ -851,8 +841,7 @@ class StmtStates:
             # 形如 a = b
 
             if util.isna(stmt.operator):
-                # print(">>>>>", stmt_id, stmt)
-                # print(operand_states)
+
                 defined_symbol.states = operand_states
                 return P2ResultFlag()
 
@@ -1933,7 +1922,6 @@ class StmtStates:
 
         callee_type = callee_info.callee_type
         callee_method_ids = set()
-        callee_class_ids = set()
         this_state_set = set()
         for each_state_index in name_states:
             each_state = self.frame.symbol_state_space[each_state_index]
@@ -2015,10 +2003,6 @@ class StmtStates:
                 parameter_mapping_list = []
                 self.map_arguments(args, parameters, parameter_mapping_list, new_call_site)
 
-        # print(f"callee_ids_to_be_analyzed: {callee_ids_to_be_analyzed}")
-        # print(f"analyzed_method_list: {self.analyzed_method_list}")
-        # print(f"frame_stack.method_ids: {self.frame_stack.method_ids}")
-
         if len(callee_ids_to_be_analyzed) != 0:
             self.frame.stmts_with_symbol_update.add(stmt_id)
             if config.DEBUG_FLAG:
@@ -2047,6 +2031,8 @@ class StmtStates:
         if len(callee_method_ids) == 0:
             name_index = status.used_symbols[0]
             name_symbol = self.frame.symbol_state_space[name_index]
+            if isinstance(name_symbol, State):
+                return P2ResultFlag()
             return_access_path = []
             for index in name_symbol.states:
                 name_state = self.frame.symbol_state_space[index]
@@ -2079,16 +2065,10 @@ class StmtStates:
 
             return P2ResultFlag()
 
-        # args = self.prepare_args(stmt_id, stmt, status, in_states, args_state_set)
-        # if config.DEBUG_FLAG:
-        #     util.debug(f"positional_args of stmt <{stmt_id}>: {args.positional_args}")
-        #     util.debug(f"named_args of stmt <{stmt_id}>: {args.named_args}")
-
         for each_callee_id in callee_method_ids:
             # prepare callee summary template and compact space
             callee_summary = self.loader.get_method_summary_template(each_callee_id)
             if util.is_empty(callee_summary):
-                # print(f"\neach_callee_id: {each_callee_id}")
                 continue
             callee_summary = callee_summary.copy()
 
@@ -2280,7 +2260,6 @@ class StmtStates:
                 if isinstance(default_value, Symbol):
                     value_state_indexes = self.read_used_states(default_value_index, in_states)
                     for default_value_state_index in value_state_indexes:
-                        # self.tag_key_state_flag(stmt_id, default_value.symbol_id, default_value_state_index)
                             util.add_to_dict_with_default_set(
                                 self.frame.method_summary_template.used_external_symbols,
                                 default_value.symbol_id,
@@ -2381,7 +2360,6 @@ class StmtStates:
                 self.update_access_path_state_id(init_state_index)
                 defined_symbol.states.add(init_state_index)
 
-            # print("new_object_stmt_state@ create a default_state for new object", defined_symbol.states)
 
         p2result_flag = P2ResultFlag()
         event = EventData(
@@ -2480,8 +2458,6 @@ class StmtStates:
         address_symbol: Symbol = self.frame.symbol_state_space[address_index]
         old_id_list = self.obtain_states(address_index)
         address_id_list = self.read_used_states(address_index, in_states)
-
-        #print("address_id_list:", address_id_list)
 
         target_states = set()
         reachable_symbol_defs = self.frame.symbol_bit_vector_manager.explain(status.in_symbol_bits)
@@ -3075,7 +3051,6 @@ class StmtStates:
                 receiver_state.fields[field_name] = defined_states
 
         else:
-            # [ah]
             # if receiver_symbol.name.startswith(LIAN_INTERNAL.VARIABLE_DECL_PREF):
             source_index = self.create_state_and_add_space(
                 status, stmt_id=stmt_id,
@@ -3332,8 +3307,6 @@ class StmtStates:
         if er.should_block_event_requester(app_return):
             defined_symbol.states = event.out_data.defined_states
             return P2ResultFlag()
-        # else:
-        # receiver_states = event.out_data.receiver_states
 
         for receiver_state_index in receiver_states:
             each_defined_states = set()
@@ -3363,68 +3336,6 @@ class StmtStates:
                     each_defined_states.update(index_set)
                     continue
 
-                # # if field_name not in receiver_state.fields:
-                # elif self.is_state_a_unit(each_receiver_state):
-                #     import_graph = self.loader.get_import_graph()
-                #     import_symbols = self.loader.get_unit_export_symbols(each_receiver_state.value)
-                #     # [ah]
-                #     found_in_import_graph = False
-                #     # 解决file.symbol的情况，从import graph里找symbol
-                #     for u, v, wt in import_graph.edges(data=True):
-                #         real_name = wt.get("real_name", None)
-                #         if real_name == field_name:
-                #             symbol_type = wt.get("symbol_type", None)
-                #             if symbol_type == LIAN_SYMBOL_KIND.METHOD_KIND:
-                #                 data_type = LIAN_INTERNAL.METHOD_DECL
-                #             elif symbol_type == LIAN_SYMBOL_KIND.CLASS_KIND:
-                #                 data_type = LIAN_INTERNAL.CLASS_DECL
-                #             else:
-                #                 data_type = LIAN_INTERNAL.UNIT
-                #
-                #             state_index = self.create_state_and_add_space(
-                #                 status, stmt_id=stmt_id,
-                #                 source_symbol_id=v,
-                #                 source_state_id=each_receiver_state.source_state_id,
-                #                 data_type=data_type,
-                #                 value=v,
-                #                 # access_path=self.copy_and_extend_access_path(
-                #                 #     each_receiver_state.access_path,
-                #                 #     AccessPoint(
-                #                 #         key=real_name,
-                #                 #     )
-                #                 # )
-                #                 access_path=[AccessPoint(key=real_name)]
-                #             )
-                #             found_in_import_graph = True
-                #             self.update_access_path_state_id(state_index)
-                #             each_defined_states.add(state_index)
-                #
-                #     if import_symbols and not found_in_import_graph:
-                #         for import_symbol in import_symbols:
-                #             if import_symbol.symbol_name == field_name:
-                #                 if import_symbol.symbol_type == LIAN_SYMBOL_KIND.METHOD_KIND:
-                #                     data_type = LIAN_INTERNAL.METHOD_DECL
-                #                 elif import_symbol.symbol_type == LIAN_SYMBOL_KIND.CLASS_KIND:
-                #                     data_type = LIAN_INTERNAL.CLASS_DECL
-                #                 else:
-                #                     data_type = LIAN_INTERNAL.UNIT
-                #
-                #                 state_index = self.create_state_and_add_space(
-                #                     status, stmt_id=stmt_id,
-                #                     source_symbol_id=import_symbol.symbol_id,
-                #                     source_state_id=each_receiver_state.source_state_id,
-                #                     data_type=data_type,
-                #                     value=import_symbol.import_stmt,
-                #                     # access_path = self.copy_and_extend_access_path(
-                #                     #     each_receiver_state.access_path,
-                #                     #     AccessPoint(
-                #                     #         key=import_symbol.symbol_name,
-                #                     #     )
-                #                     # )
-                #                     access_path=[AccessPoint(key=import_symbol.symbol_name)]
-                #                 )
-                #                 self.update_access_path_state_id(state_index)
-                #                 each_defined_states.add(state_index)
 
                 elif self.is_state_a_class_decl(each_receiver_state):
                     first_found_class_id = -1  # 记录从下往上找到该方法的第一个class_id。最后只返回该class中所有的同名方法，不继续向上找。
@@ -3622,17 +3533,11 @@ class StmtStates:
 
                 new_receiver_state_index = self.create_copy_of_state_and_add_space(status, stmt_id, receiver_state_index, stmt)
                 new_receiver_state: State = self.frame.symbol_state_space[new_receiver_state_index]
-                # print("@field_state write", new_receiver_state)
 
-                # if is_anonymous:
-                # [ah]a.b = c.d access_path 变成a.b
                 for each_source_state_index in source_states:
                     each_source_state = self.frame.symbol_state_space[each_source_state_index]
                     if not (each_source_state and isinstance(each_source_state, State)):
                         continue
-                    #
-                    # if each_source_state.state_type == STATE_TYPE_KIND.ANYTHING:
-                    #     continue
 
                     self.update_access_path_state_id(each_source_state_index)
                     self.sfg.add_edge(
@@ -3645,7 +3550,6 @@ class StmtStates:
                 defined_symbol_states.add(new_receiver_state_index)
 
         defined_symbol.states = defined_symbol_states
-        # print(f"defined_symbol_states: {defined_symbol_states}")
         event = EventData(
             self.lang,
             EVENT_KIND.P2STATE_FIELD_WRITE_AFTER,

@@ -73,23 +73,7 @@ class ControlFlowAnalysis:
             for label in self.label:
                 if goto.name == label.name:
                     self.cfg.graph.add_edge(goto.stmt_id, label.stmt_id)
-                    # 接上label之后的语句，防止return 后接label时，cfg断裂
-    #                 after_label_block = self.split_method_body_from_label(self.method_body, label)
-    #                 self.analyze_block(after_label_block, [CFGNode(label, 0)])
-    #                 if self.method_id == 14276:
-    #                     print(after_label_block)
 
-    #     self.loader.save_method_cfg(self.method_id, self.cfg.graph)
-    #     return self.cfg.graph
-    # def split_method_body_from_label(self, method_body, label):
-    #     after_label_block = []
-    #     start_split = False
-    #     for stmt in method_body:
-    #         if stmt == label:
-    #             start_split = True
-    #         if start_split:
-    #             after_label_block.append(stmt)
-    #     return after_label_block
 
         self.loader.save_method_cfg(self.method_id, self.cfg.graph)
         return self.cfg.graph
@@ -127,14 +111,14 @@ class ControlFlowAnalysis:
         then_body_id = current_stmt.then_body
         if not util.isna(then_body_id):
             then_body = self.read_block(then_body_id)
-            if len(then_body) != 0:
+            if then_body and len(then_body) != 0:
                 last_stmts_of_then_body = self.analyze_block(then_body, last_stmts_of_then_body, global_special_stmts)
 
         last_stmts_of_else_body = [CFGNode(current_stmt, CONTROL_FLOW_KIND.IF_FALSE)]
         else_body_id = current_stmt.else_body
         if not util.isna(else_body_id):
             else_body = self.read_block(else_body_id)
-            if len(else_body) != 0:
+            if else_body and len(else_body) != 0:
                 last_stmts_of_else_body = self.analyze_block(else_body, last_stmts_of_else_body, global_special_stmts)
 
         boundary = self.boundary_of_multi_blocks(current_block, [then_body_id, else_body_id])
@@ -498,11 +482,8 @@ class ControlFlowAnalysis:
         pos = current_range.get_real_start_index()
         boundary = pos
 
-        #print("++++ handling ", current_block)
-
         while pos < current_range.end:
             current = current_block.get_stmt_by_pos(pos)
-            #print("dealing with", pos, current)
             if util.is_empty(current):
                 pos += 1
                 continue

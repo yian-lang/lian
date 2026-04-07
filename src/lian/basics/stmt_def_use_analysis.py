@@ -30,7 +30,7 @@ from lian.core.resolver import Resolver
 from lian.basics.import_hierarchy import ImportHierarchy
 
 class StmtDefUseAnalysis:
-    def __init__(self, loader:Loader, resolver: Resolver, basic_call_graph: BasicCallGraph, compute_frame: ComputeFrame, import_analysis:ImportHierarchy, external_symbol_id_collection):
+    def __init__(self, loader:Loader, resolver: Resolver, basic_call_graph: BasicCallGraph, compute_frame: ComputeFrame, import_analysis:ImportHierarchy, external_symbol_id_collection, unit_symbol_decl_summary):
         self.loader: Loader = loader
         self.resolver: Resolver = resolver
         self.basic_call_graph: BasicCallGraph = basic_call_graph
@@ -38,6 +38,8 @@ class StmtDefUseAnalysis:
         self.stmt_id_to_status = compute_frame.stmt_id_to_status
         self.method_id = compute_frame.method_id
         self.unit_id = loader.convert_method_id_to_unit_id(self.method_id)
+        self.unit_symbol_decl_summary = unit_symbol_decl_summary
+
         self.unit_info = loader.convert_module_id_to_module_info(self.unit_id)
         self.frame = compute_frame
         self.callees = compute_frame.basic_callees
@@ -190,12 +192,12 @@ class StmtDefUseAnalysis:
             elif stmt.operation in ["nonlocal_stmt", "global_stmt"]:
                 if stmt.operation == "global_stmt":
                     source_info = self.resolver.resolve_symbol_source_decl(
-                        self.unit_id, stmt_id, defined_symbol.name,
+                        self.unit_id, stmt_id, defined_symbol.name, self.unit_symbol_decl_summary,
                         source_symbol_must_be_global = True
                     )
                 else:
                     source_info = self.resolver.resolve_symbol_source_decl(
-                        self.unit_id, stmt_id, defined_symbol.name,
+                        self.unit_id, stmt_id, defined_symbol.name, self.unit_symbol_decl_summary,
                         source_symbol_must_be_global = False
                     )
                 if util.is_available(source_info):
@@ -207,7 +209,7 @@ class StmtDefUseAnalysis:
 
             else:
                 source_info = self.resolver.resolve_symbol_source_decl(
-                    self.unit_id, stmt.stmt_id, defined_symbol.name
+                    self.unit_id, stmt.stmt_id, defined_symbol.name, self.unit_symbol_decl_summary,
                 )
 
                 #print(f"@@@@ {stmt} {source_info}")
@@ -250,7 +252,7 @@ class StmtDefUseAnalysis:
 
             # check its performance
             source_info = self.resolver.resolve_symbol_source_decl(
-                self.unit_id, stmt_id, used_symbol.name
+                self.unit_id, stmt_id, used_symbol.name, self.unit_symbol_decl_summary,
             )
             #print("source_info:", source_info, self.unit_id, self.method_id, stmt_id, used_symbol, stmt)
             if util.is_available(source_info):

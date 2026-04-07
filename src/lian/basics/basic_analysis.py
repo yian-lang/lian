@@ -55,6 +55,7 @@ class P1BasicSemanticAnalysis:
         self.basic_call_graph = BasicCallGraph()
         self.analyzed_method_ids = set()
         self.incremental_checker = None
+        self.unit_symbol_decl_summary = None
         if self.options.incremental:
             self.incremental_checker = UnitLevelIncrementalChecker.unit_level_incremental_checker()
 
@@ -109,6 +110,7 @@ class P1BasicSemanticAnalysis:
             compute_frame = frame,
             import_analysis=import_analysis,
             external_symbol_id_collection=external_symbol_id_collection,
+            unit_symbol_decl_summary = self.unit_symbol_decl_summary
         )
 
         for stmt_id in frame.unit_gir.get_all_stmt_ids(): 
@@ -236,7 +238,6 @@ class P1BasicSemanticAnalysis:
 
         # Conduct basic analysis, i.e., context-insensitive and flow-insensitive analysis
         # reversed() is to improve cache hit rates
-        #print("=== Analyzing def_use ===")
         unit_list.reverse()
         for unit_id in unit_list:
             external_symbol_id_collection = {}
@@ -245,6 +246,7 @@ class P1BasicSemanticAnalysis:
                 unit_is_analyzed = (self.incremental_checker.check_unit_id_analyzed(unit_id) is not None)
             else:
                 unit_is_analyzed = False
+            self.unit_symbol_decl_summary = self.loader.get_unit_symbol_decl_summary(unit_id)
             for method_id in all_unit_methods:
                 if self.options.strict_parse_mode:
                     external_symbol_id_collection = {}
