@@ -714,7 +714,7 @@ class Parser(common_parser.Parser):
 
         declarators = node.named_children
         for child in declarators:
-            if self.is_comment(child):
+            if self.is_comment(child) or child.type == "ERROR":
                 continue
 
             has_init = False

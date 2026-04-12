@@ -179,7 +179,7 @@ class ModuleSymbolsLoader:
         if len(all_units) == 0:
             return []
         
-        if hasattr(self.options, "benchmark"):            
+        if hasattr(self.options, "benchmark") and self.options.benchmark:
             all_units = all_units.slice(0, config.MAX_BENCHMARK_FILES)
 
         return all_units
