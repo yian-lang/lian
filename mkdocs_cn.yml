@@ -65,4 +65,4 @@ nav:
       - 数据层: 07.underlying/7-1.data-model.md
       - 语义存储和检索: 07.underlying/7-2.loader.md
   - 分析结果:
-      - workspace结果: 08.results/8-1.workspace.md
+      - Workspace结果: 08.results/8-1.workspace.md
