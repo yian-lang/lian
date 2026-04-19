@@ -402,7 +402,7 @@ class Parser(common_parser.Parser):
 
             arguments = self.find_child_by_field(node, "arguments")
             argument_list = []
-            if arguments.named_child_count > 0:
+            if arguments and arguments.named_child_count > 0:
                 for arg in arguments.named_children:
                     if self.is_comment(arg):
                         continue
