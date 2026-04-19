@@ -15,7 +15,7 @@ MAX_ROWS                                                     = 40 * 10000
 MAX_BENCHMARK_FILES                                          = 1000
 MAX_ANALYSIS_ROUND_FOR_PRELIM_ANALYSIS                       = 1
 MAX_ANALYSIS_ROUND_FOR_GLOBAL_ANALYSIS                       = 2
-MAX_ANALYSIS_ROUND_FOR_CALL_SITE                             = 2
+MAX_ANALYSIS_ROUND_FOR_CALL_SITE                             = 1
 
 FIRST_ROUND                                                  = 0
 SECOND_ROUND                                                 = 1
