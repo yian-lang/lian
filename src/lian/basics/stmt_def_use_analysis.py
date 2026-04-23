@@ -377,8 +377,10 @@ class StmtDefUseAnalysis:
         arg_symbol_list = used_symbols[1:]
         if stmt.operation == "object_call_stmt":
             arg_symbol_list = used_symbols[2:]
-        callee_name_symbol_index = used_symbols[0]
-        callee_name_symbol = self.symbol_state_space[callee_name_symbol_index]
+        callee_name_symbol = None
+        if used_symbols:
+            callee_name_symbol_index = used_symbols[0]
+            callee_name_symbol = self.symbol_state_space[callee_name_symbol_index]
 
         positional_args_info = []
         packed_positional_args_info = []
