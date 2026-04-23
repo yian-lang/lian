@@ -2,7 +2,7 @@
 
 from tree_sitter import Node
 from lian.lang import common_parser
-
+from lian.config import config
 class Parser(common_parser.Parser):
     def is_comment(self, node):
         return node.type in ["line_comment", "block_comment", "comment"]
@@ -234,6 +234,8 @@ class Parser(common_parser.Parser):
         if left.type == "array_pattern":
             index = 0
             for p in left.named_children:
+                if index > config.MAX_INDEX:
+                    break
                 if self.is_comment(p):
                     continue
 
@@ -246,7 +248,10 @@ class Parser(common_parser.Parser):
 
         # 对象解构
         if left.type == "object_pattern":
+            index = 0
             for p in left.named_children:
+                if index > config.MAX_INDEX:
+                    break
                 if self.is_comment(p):
                     continue
 
@@ -262,7 +267,7 @@ class Parser(common_parser.Parser):
                     shadow_right_child = self.parse(right_child, statements)
 
                     self.append_stmts(statements, node, {"field_read": {"target": shadow_right_child, "receiver_object": shadow_right, "field": shadow_left_child}})
-
+                index += 1
             return shadow_right
 
         shadow_left = self.read_node_text(left)
@@ -484,6 +489,8 @@ class Parser(common_parser.Parser):
         data_type = list(data_type)
         self.append_stmts(statements, node, {"new_array": {"target": tmp_var, "data_type": data_type}})
         num_elements = len(elements)
+        if num_elements > config.MAX_INDEX:
+            num_elements = config.MAX_INDEX
         for i in range(num_elements):
             element = elements[i]
             if self.is_comment(element):
@@ -621,6 +628,8 @@ class Parser(common_parser.Parser):
         tmp_var = self.tmp_variable()
         self.append_stmts(statements, node, {"new_array": {"target": tmp_var, "data_type": "object"}})
         for i in range(len(obj_children)):
+            if i > config.MAX_INDEX:
+                break
             if self.is_comment(obj_children[i]):
                 continue
             res = self.parse(obj_children[i], statements)
@@ -737,6 +746,8 @@ class Parser(common_parser.Parser):
             elif name.type == "array_pattern":  # 数组解构
                 index = 0
                 for p in name.named_children:
+                    if index > config.MAX_INDEX:
+                        break
                     if self.is_comment(p):
                         continue
 
@@ -750,7 +761,10 @@ class Parser(common_parser.Parser):
                         self.append_stmts(statements, node, {"array_read": {"target": pattern, "array": shadow_value, "index": str(index)}})
                     index += 1
             elif name.type == "object_pattern": # 对象解构
+                index = 0
                 for p in name.named_children:
+                    if index > config.MAX_INDEX:
+                        break
                     if self.is_comment(p):
                         continue
 
@@ -778,7 +792,7 @@ class Parser(common_parser.Parser):
 
                         if has_init:
                             self.append_stmts(statements, node, {"field_read": {"target": shadow_right_child, "receiver_object": shadow_value, "field": shadow_left_child}})
-
+                    index += 1
         return return_vals
 
     CLASS_TYPE_MAP = {
@@ -1174,6 +1188,8 @@ class Parser(common_parser.Parser):
             shadow_name = self.tmp_variable()
             index = 0
             for p in left.named_children:
+                if index > config.MAX_INDEX:
+                    break
                 if self.is_comment(p):
                     continue
 

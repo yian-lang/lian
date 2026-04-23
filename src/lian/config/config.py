@@ -69,6 +69,8 @@ MAX_ARRAY_ELEMENT_STATES                                     = 4
 
 MAX_METHOD_CALL_COUNT                                        = 30
 
+MAX_INDEX                                                    = 10
+
 COMPLETE_SFG_DUMP_FLAG                                       = False
 
 TAINT_SOURCE                                                 = os.path.join(DEFAULT_SETTINGS, "source.yaml")
