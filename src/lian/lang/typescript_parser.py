@@ -292,6 +292,8 @@ class Parser(common_parser.Parser):
         elements = node.named_children
         num_elements = len(elements)
         shadow_left_list = []
+        if num_elements > config.MAX_INDEX:
+            num_elements = config.MAX_INDEX
         for i in range(num_elements):
             element = elements[i]
             if self.is_comment(element):
@@ -453,6 +455,8 @@ class Parser(common_parser.Parser):
             shadow_left = self.parse(left, statements)
             if type(shadow_left) == list:
                 child_count = len(shadow_left)
+                if child_count > config.MAX_INDEX:
+                    child_count = config.MAX_INDEX
                 for i in range(child_count):
                     tmp_var = self.tmp_variable()
                     self.append_stmts(statements, node, {"array_read": {"target": tmp_var, "array": shadow_right,"index": str(i)}})
@@ -517,10 +521,14 @@ class Parser(common_parser.Parser):
     def parse_sequence_expression(self, node: Node, statements: list):
         sub_expressions = node.named_children
         sequence_list = []
+        index = 0
         for sub_expression in sub_expressions:
+            if index > config.MAX_INDEX:
+                break
             if self.is_comment(sub_expression):
                 continue
             sequence_list.append(self.parse(sub_expression, statements))
+            index += 1
         return sequence_list
 
     def await_expression(self, node: Node, statements: list):
