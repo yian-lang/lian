@@ -234,8 +234,6 @@ class Parser(common_parser.Parser):
         if left.type == "array_pattern":
             index = 0
             for p in left.named_children:
-                if index > config.MAX_INDEX:
-                    break
                 if self.is_comment(p):
                     continue
 
@@ -250,8 +248,6 @@ class Parser(common_parser.Parser):
         if left.type == "object_pattern":
             index = 0
             for p in left.named_children:
-                if index > config.MAX_INDEX:
-                    break
                 if self.is_comment(p):
                     continue
 
@@ -290,12 +286,8 @@ class Parser(common_parser.Parser):
 
     def parse_array_pattern(self, node: Node, statements: list):
         elements = node.named_children
-        num_elements = len(elements)
         shadow_left_list = []
-        if num_elements > config.MAX_INDEX:
-            num_elements = config.MAX_INDEX
-        for i in range(num_elements):
-            element = elements[i]
+        for element in elements:
             if self.is_comment(element):
                 continue
             shadow_element = self.parse(element, statements)
@@ -454,10 +446,7 @@ class Parser(common_parser.Parser):
         if left.type == "parenthesized_expression":
             shadow_left = self.parse(left, statements)
             if type(shadow_left) == list:
-                child_count = len(shadow_left)
-                if child_count > config.MAX_INDEX:
-                    child_count = config.MAX_INDEX
-                for i in range(child_count):
+                for i in range(len(shadow_left)):
                     tmp_var = self.tmp_variable()
                     self.append_stmts(statements, node, {"array_read": {"target": tmp_var, "array": shadow_right,"index": str(i)}})
                     self.append_stmts(statements, node, {"assign_stmt": {"target": shadow_left[i], "operator": shadow_operator,
@@ -492,11 +481,7 @@ class Parser(common_parser.Parser):
             data_type.add(element.type)
         data_type = list(data_type)
         self.append_stmts(statements, node, {"new_array": {"target": tmp_var, "data_type": data_type}})
-        num_elements = len(elements)
-        if num_elements > config.MAX_INDEX:
-            num_elements = config.MAX_INDEX
-        for i in range(num_elements):
-            element = elements[i]
+        for i, element in enumerate(elements):
             if self.is_comment(element):
                 continue
             shadow_element = self.parse(element, statements)
@@ -521,14 +506,10 @@ class Parser(common_parser.Parser):
     def parse_sequence_expression(self, node: Node, statements: list):
         sub_expressions = node.named_children
         sequence_list = []
-        index = 0
         for sub_expression in sub_expressions:
-            if index > config.MAX_INDEX:
-                break
             if self.is_comment(sub_expression):
                 continue
             sequence_list.append(self.parse(sub_expression, statements))
-            index += 1
         return sequence_list
 
     def await_expression(self, node: Node, statements: list):
@@ -636,8 +617,6 @@ class Parser(common_parser.Parser):
         tmp_var = self.tmp_variable()
         self.append_stmts(statements, node, {"new_array": {"target": tmp_var, "data_type": "object"}})
         for i in range(len(obj_children)):
-            if i > config.MAX_INDEX:
-                break
             if self.is_comment(obj_children[i]):
                 continue
             res = self.parse(obj_children[i], statements)
@@ -754,8 +733,6 @@ class Parser(common_parser.Parser):
             elif name.type == "array_pattern":  # 数组解构
                 index = 0
                 for p in name.named_children:
-                    if index > config.MAX_INDEX:
-                        break
                     if self.is_comment(p):
                         continue
 
@@ -771,8 +748,6 @@ class Parser(common_parser.Parser):
             elif name.type == "object_pattern": # 对象解构
                 index = 0
                 for p in name.named_children:
-                    if index > config.MAX_INDEX:
-                        break
                     if self.is_comment(p):
                         continue
 
@@ -1196,8 +1171,6 @@ class Parser(common_parser.Parser):
             shadow_name = self.tmp_variable()
             index = 0
             for p in left.named_children:
-                if index > config.MAX_INDEX:
-                    break
                 if self.is_comment(p):
                     continue
 
