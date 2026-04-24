@@ -159,7 +159,7 @@ class BasicGraph:
     def _add_one_edge(self, src_stmt_id, dst_stmt_id, weight):
         if src_stmt_id == dst_stmt_id:
             return
-        if src_stmt_id < 0:
+        if isinstance(src_stmt_id, (int, numpy.int64)) and src_stmt_id < 0:
             return
         # if config.DEBUG_FLAG:
         #     util.debug(f"_add_one_edge:{src_stmt_id}->{dst_stmt_id}, weight={weight}")
@@ -1824,7 +1824,7 @@ class CallGraph(BasicGraph):
         return all_paths
 
     def _add_one_edge(self, src_stmt_id, dst_stmt_id, weight):
-        if src_stmt_id < 0:
+        if isinstance(src_stmt_id, (int, numpy.int64)) and src_stmt_id < 0:
             return
 
         self.graph.add_edge(src_stmt_id, dst_stmt_id, weight = weight)

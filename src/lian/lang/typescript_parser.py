@@ -290,12 +290,8 @@ class Parser(common_parser.Parser):
 
     def parse_array_pattern(self, node: Node, statements: list):
         elements = node.named_children
-        num_elements = len(elements)
         shadow_left_list = []
-        if num_elements > config.MAX_INDEX:
-            num_elements = config.MAX_INDEX
-        for i in range(num_elements):
-            element = elements[i]
+        for element in elements:
             if self.is_comment(element):
                 continue
             shadow_element = self.parse(element, statements)
@@ -454,10 +450,7 @@ class Parser(common_parser.Parser):
         if left.type == "parenthesized_expression":
             shadow_left = self.parse(left, statements)
             if type(shadow_left) == list:
-                child_count = len(shadow_left)
-                if child_count > config.MAX_INDEX:
-                    child_count = config.MAX_INDEX
-                for i in range(child_count):
+                for i in range(len(shadow_left)):
                     tmp_var = self.tmp_variable()
                     self.append_stmts(statements, node, {"array_read": {"target": tmp_var, "array": shadow_right,"index": str(i)}})
                     self.append_stmts(statements, node, {"assign_stmt": {"target": shadow_left[i], "operator": shadow_operator,
@@ -492,11 +485,7 @@ class Parser(common_parser.Parser):
             data_type.add(element.type)
         data_type = list(data_type)
         self.append_stmts(statements, node, {"new_array": {"target": tmp_var, "data_type": data_type}})
-        num_elements = len(elements)
-        if num_elements > config.MAX_INDEX:
-            num_elements = config.MAX_INDEX
-        for i in range(num_elements):
-            element = elements[i]
+        for i, element in enumerate(elements):
             if self.is_comment(element):
                 continue
             shadow_element = self.parse(element, statements)
