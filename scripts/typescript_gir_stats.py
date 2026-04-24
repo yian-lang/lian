@@ -5,6 +5,7 @@ import builtins
 import json
 import os
 import sys
+import time
 from collections import Counter
 from pathlib import Path
 from types import SimpleNamespace
@@ -36,6 +37,7 @@ DEFAULT_EXCLUDE_DIRS = {
     "node_modules",
     "extension-node-modules",
 }
+DEFAULT_MAX_FILES = 1000
 
 
 def build_options():
@@ -80,6 +82,12 @@ def discover_typescript_files(paths, exclude_dirs, include_dts):
     return sorted(discovered)
 
 
+def limit_files(files, max_files):
+    if max_files is None or max_files <= 0:
+        return files
+    return files[:max_files]
+
+
 def is_typescript_file(path, include_dts):
     suffixes = path.suffixes
     if suffixes[-2:] == [".d", ".ts"] and not include_dts:
@@ -108,6 +116,10 @@ def collect_operation_counts(flattened_nodes):
 
 def format_ratio(value):
     return f"{value:.4f}"
+
+
+def format_seconds(value):
+    return f"{value:.4f}s"
 
 
 def print_operation_summary(operation_counts):
@@ -139,6 +151,29 @@ def print_top_files(file_stats, top_n, ratio_base_label):
         )
 
 
+def print_slowest_files(file_stats, slow_top):
+    print()
+    print(f"Top {min(slow_top, len(file_stats))} slowest files by analysis time:")
+    if not file_stats:
+        print("  <no files>")
+        return
+
+    slowest_files = sorted(file_stats, key=lambda item: (-item["analysis_seconds"], item["path"]))
+    header = (
+        f"{'#':>2}  {'seconds':>10}  {'gir':>7}  "
+        f"{'lines':>7}  file"
+    )
+    print(header)
+    for index, stat in enumerate(slowest_files[:slow_top], start=1):
+        print(
+            f"{index:>2}  "
+            f"{format_seconds(stat['analysis_seconds']):>10}  "
+            f"{stat['flattened_gir_count']:>7}  "
+            f"{stat['ratio_base_lines']:>7}  "
+            f"{stat['path']}"
+        )
+
+
 def flatten_typescript_gir(parser, lang_name, gir_statements):
     event = EventData(lang_name, EVENT_KIND.UNFLATTENED_GIR_LIST_GENERATED, gir_statements)
     parser.event_manager.notify(event)
@@ -157,15 +192,25 @@ def create_report(files, parser, ratio_base, lang_table):
     file_stats = []
     failures = []
     lang_name = "typescript"
+    analysis_start = time.perf_counter()
 
     for file_path in files:
+        file_start = time.perf_counter()
         try:
             code = file_path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            failures.append({"path": str(file_path), "error": "Failed to decode file as UTF-8"})
+            failures.append({
+                "path": str(file_path),
+                "error": "Failed to decode file as UTF-8",
+                "analysis_seconds": time.perf_counter() - file_start,
+            })
             continue
         except OSError as exc:
-            failures.append({"path": str(file_path), "error": str(exc)})
+            failures.append({
+                "path": str(file_path),
+                "error": str(exc),
+                "analysis_seconds": time.perf_counter() - file_start,
+            })
             continue
 
         total_lines, non_empty_lines = count_source_lines(code)
@@ -178,10 +223,18 @@ def create_report(files, parser, ratio_base, lang_table):
                 lang_table,
             )
         except SystemExit as exc:
-            failures.append({"path": str(file_path), "error": f"Parser aborted with code {exc.code}"})
+            failures.append({
+                "path": str(file_path),
+                "error": f"Parser aborted with code {exc.code}",
+                "analysis_seconds": time.perf_counter() - file_start,
+            })
             continue
         except Exception as exc:
-            failures.append({"path": str(file_path), "error": str(exc)})
+            failures.append({
+                "path": str(file_path),
+                "error": str(exc),
+                "analysis_seconds": time.perf_counter() - file_start,
+            })
             continue
 
         if not gir_statements:
@@ -190,10 +243,18 @@ def create_report(files, parser, ratio_base, lang_table):
             try:
                 flattened_nodes = flatten_typescript_gir(parser, lang_name, gir_statements)
             except SystemExit as exc:
-                failures.append({"path": str(file_path), "error": f"Flatten aborted with code {exc.code}"})
+                failures.append({
+                    "path": str(file_path),
+                    "error": f"Flatten aborted with code {exc.code}",
+                    "analysis_seconds": time.perf_counter() - file_start,
+                })
                 continue
             except Exception as exc:
-                failures.append({"path": str(file_path), "error": str(exc)})
+                failures.append({
+                    "path": str(file_path),
+                    "error": str(exc),
+                    "analysis_seconds": time.perf_counter() - file_start,
+                })
                 continue
 
         if not flattened_nodes:
@@ -203,6 +264,7 @@ def create_report(files, parser, ratio_base, lang_table):
 
         flattened_gir_count = len(flattened_nodes)
         aggregate_operation_counts.update(operation_counts)
+        analysis_seconds = time.perf_counter() - file_start
 
         ratio_base_lines = non_empty_lines if ratio_base == "non-empty" else total_lines
         ratio = flattened_gir_count / ratio_base_lines if ratio_base_lines else 0.0
@@ -215,16 +277,19 @@ def create_report(files, parser, ratio_base, lang_table):
                 "non_empty_lines": non_empty_lines,
                 "ratio_base_lines": ratio_base_lines,
                 "ratio": ratio,
+                "analysis_seconds": analysis_seconds,
                 "operation_counts": dict(sorted(operation_counts.items())),
             }
         )
 
     file_stats.sort(key=lambda item: (-item["ratio"], -item["flattened_gir_count"], item["path"]))
+    total_analysis_seconds = time.perf_counter() - analysis_start
     return {
         "files_analyzed": len(file_stats),
         "files_failed": len(failures),
         "total_flattened_gir_count": sum(aggregate_operation_counts.values()),
         "total_gir_count": sum(aggregate_operation_counts.values()),
+        "total_analysis_seconds": total_analysis_seconds,
         "operation_counts": dict(sorted(aggregate_operation_counts.items(), key=lambda item: (-item[1], item[0]))),
         "top_files": file_stats,
         "failures": failures,
@@ -237,10 +302,22 @@ def parse_args():
     )
     parser.add_argument("paths", nargs="+", help="TypeScript file or directory to analyze")
     parser.add_argument(
+        "--max-files",
+        type=int,
+        default=DEFAULT_MAX_FILES,
+        help="Maximum number of files to analyze after discovery (default: 1000)",
+    )
+    parser.add_argument(
         "--top",
         type=int,
         default=10,
         help="Number of files to show in the ratio ranking (default: 10)",
+    )
+    parser.add_argument(
+        "--slow-top",
+        type=int,
+        default=10,
+        help="Number of files to show in the slowest-file ranking (default: 10)",
     )
     parser.add_argument(
         "--ratio-base",
@@ -270,7 +347,8 @@ def parse_args():
 def main():
     args = parse_args()
     exclude_dirs = DEFAULT_EXCLUDE_DIRS | set(args.exclude_dir)
-    files = discover_typescript_files(args.paths, exclude_dirs, args.include_dts)
+    discovered_files = discover_typescript_files(args.paths, exclude_dirs, args.include_dts)
+    files = limit_files(discovered_files, args.max_files)
     if not files:
         print("No TypeScript files found.")
         return 1
@@ -281,17 +359,20 @@ def main():
     lang_table = [lang for lang in lang_config.LANG_TABLE if lang.name == "typescript"]
     report = create_report(files, gir_parser, args.ratio_base, lang_table)
 
-    print(f"Analyzed files: {report['files_analyzed']}")
-    print(f"Failed files:   {report['files_failed']}")
+    print(f"Discovered files: {len(discovered_files)}")
+    print(f"Analyzed files:   {report['files_analyzed']}")
+    print(f"Failed files:     {report['files_failed']}")
+    print(f"Analysis time:    {format_seconds(report['total_analysis_seconds'])}")
     print(f"Total flattened GIR: {report['total_flattened_gir_count']}")
     print_operation_summary(report["operation_counts"])
     print_top_files(report["top_files"], args.top, args.ratio_base)
+    print_slowest_files(report["top_files"], args.slow_top)
 
     if report["failures"]:
         print()
         print("Failures:")
         for failure in report["failures"]:
-            print(f"  {failure['path']}: {failure['error']}")
+            print(f"  {failure['path']}: {failure['error']} ({format_seconds(failure['analysis_seconds'])})")
 
     if args.json_out:
         output_path = Path(args.json_out).resolve()
