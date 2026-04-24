@@ -180,19 +180,36 @@ class BasicGraph:
         if util.is_empty(src_stmt) or util.is_empty(dst_stmt) :
             return
 
-        if isinstance(src_stmt, (int, numpy.int64, str)):
-            src_stmt_id = src_stmt
-        elif isinstance(src_stmt, list):
-            for src in src_stmt:
+        def normalize_stmt_id(stmt):
+            if isinstance(stmt, list):
+                return stmt
+
+            if isinstance(stmt, (int, numpy.int64, str)):
+                return stmt
+
+            if isinstance(stmt, (float, numpy.floating)):
+                if util.is_empty(stmt):
+                    return None
+                if float(stmt).is_integer():
+                    return int(stmt)
+                return stmt
+
+            if hasattr(stmt, "stmt_id"):
+                return stmt.stmt_id
+
+            return None
+
+        src_stmt_id = normalize_stmt_id(src_stmt)
+        if isinstance(src_stmt_id, list):
+            for src in src_stmt_id:
                 self.add_edge(src, dst_stmt, weight)
             return
-        else:
-            src_stmt_id = src_stmt.stmt_id
+        if src_stmt_id is None:
+            return
 
-        if type(dst_stmt) in (int, numpy.int64, str):
-            dst_stmt_id = dst_stmt
-        else:
-            dst_stmt_id = dst_stmt.stmt_id
+        dst_stmt_id = normalize_stmt_id(dst_stmt)
+        if dst_stmt_id is None or isinstance(dst_stmt_id, list):
+            return
 
         self._add_one_edge(src_stmt_id, dst_stmt_id, weight)
 
