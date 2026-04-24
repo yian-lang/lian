@@ -25,6 +25,7 @@ class Parser:
         self.printed_flag = False
         self.unit_info = unit_info
         self.unit_path = unit_info.original_path
+        self.gir_count = {}
 
         # self.CONSTANTS_MAP = {
         #     "None"                          : LianInternal.NULL,
@@ -87,6 +88,10 @@ class Parser:
             stmts.append(self.add_col_row_info(node, content))
         else:
             stmts.append(content)
+
+        if isinstance(content, dict) and content:
+            operation = next(iter(content))
+            self.gir_count[operation] = self.gir_count.get(operation, 0) + 1
 
     def handle_hex_string(self, input_string):
         """
