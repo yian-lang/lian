@@ -64,6 +64,27 @@ class P3GlobalSemanticAnalysis(P2PrelimSemanticAnalysis):
         self.caller_unknown_callee_edge = {}
         self.call_site_analyze_counter = {}
 
+    def _describe_method_context(self, method_id):
+        method_name = "<unknown>"
+        unit_path = "<unknown>"
+
+        try:
+            method_format = self.loader.convert_method_id_to_method_decl_format(method_id)
+            if method_format and getattr(method_format, "name", None):
+                method_name = method_format.name
+        except Exception:
+            pass
+
+        try:
+            unit_id = self.loader.convert_method_id_to_unit_id(method_id)
+            unit_info = self.loader.convert_module_id_to_module_info(unit_id)
+            if unit_info and getattr(unit_info, "original_path", None):
+                unit_path = unit_info.original_path
+        except Exception:
+            pass
+
+        return method_name, unit_path
+
     def get_stmt_id_to_callee_info(self, callees):
         results = {}
         for each_callee in callees:
@@ -175,7 +196,14 @@ class P3GlobalSemanticAnalysis(P2PrelimSemanticAnalysis):
 
         if not self.loader.contain_symbol_state_space_p1(method_id):
             return None
-        frame.cfg = self.loader.get_method_cfg(method_id)
+        try:
+            frame.cfg = self.loader.get_method_cfg(method_id)
+        except Exception as e:
+            method_name, unit_path = self._describe_method_context(method_id)
+            raise RuntimeError(
+                f"Failed to load CFG for method_id={method_id}, "
+                f"method={method_name}, file={unit_path}"
+            ) from e
         if util.is_empty(frame.cfg):
             return None
         if len(frame_stack) > 2:
