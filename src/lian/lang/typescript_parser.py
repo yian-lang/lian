@@ -1093,7 +1093,7 @@ class Parser(common_parser.Parser):
                     if self.is_comment(stmt):
                         continue
 
-                    shadow_expr = self.parse(body, new_body)
+                    shadow_expr = self.parse(stmt, new_body)
                     if stmt == body.named_children[-1]:
                         new_body.append({"return_stmt": {"name": shadow_expr}})
             else:
@@ -1530,4 +1530,3 @@ class Parser(common_parser.Parser):
         if node.named_child_count > 1:
             stmt = node.named_children[1]
             self.parse(stmt, statements)
-
