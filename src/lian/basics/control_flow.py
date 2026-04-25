@@ -373,7 +373,7 @@ class ControlFlowAnalysis:
         if not util.isna(static_init_id):
             static_init_body = self.read_block(static_init_id)
             if len(static_init_body) != 0:
-                last_stmts = self.analyze_block(static_init_body, current_stmt, global_special_stmts)
+                last_stmts = self.analyze_block(static_init_body, [current_stmt], global_special_stmts)
 
         init_id = current_stmt.init
         if not util.isna(init_id):

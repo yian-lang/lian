@@ -196,14 +196,7 @@ class P3GlobalSemanticAnalysis(P2PrelimSemanticAnalysis):
 
         if not self.loader.contain_symbol_state_space_p1(method_id):
             return None
-        try:
-            frame.cfg = self.loader.get_method_cfg(method_id)
-        except Exception as e:
-            method_name, unit_path = self._describe_method_context(method_id)
-            raise RuntimeError(
-                f"Failed to load CFG for method_id={method_id}, "
-                f"method={method_name}, file={unit_path}"
-            ) from e
+        frame.cfg = self.loader.get_method_cfg(method_id)
         if util.is_empty(frame.cfg):
             return None
         if len(frame_stack) > 2:
