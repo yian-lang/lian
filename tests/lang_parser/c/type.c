@@ -7,4 +7,4 @@
 
 // VECTOR(int) int_vector;  
 // VECTOR(float) float_vector;
-typedef struct { int foo; } foo_t;
+enum A { A_1 = 1, A_2 = A_1 + 1; }

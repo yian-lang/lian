@@ -1109,7 +1109,7 @@ class Parser(common_parser.Parser):
             name = self.find_child_by_field(enumerator, "name")
             value = self.find_child_by_field(enumerator, "value")
             shadow_name = self.read_node_text(name)
-            shadow_value = self.parse(value, list) if value else ""
+            shadow_value = self.parse(value, enum_constants_list) if value else ""
             enum_constants_list.append({"enum_constant": {"name": shadow_name, "value": shadow_value}})
 
     # ----------------------------------------------------------------------------
