@@ -863,13 +863,28 @@ class Parser(common_parser.Parser):
 
     def type_definition(self, node, statements):
         mytype = self.find_child_by_field(node, "type")
-        source_type = self.read_node_text(mytype)
-        declarators = self.find_child_by_field(node, "declarator")
-        target = self.read_node_text(declarators)
-        while child_declarator := self.find_child_by_field(declarators, "declarator"):
-            declarators = child_declarator
-            target = self.read_node_text(child_declarator)
-            self.append_stmts(statements,  node, {"type_alias_decl" : {"name" : target, "data_type" : source_type}})
+        if mytype.type in ["struct_specifier", "union_specifier"]:
+            source_type = self.struct_specifier(mytype, statements)
+        elif mytype.type == "enum_specifier":
+            source_type = self.enum_declaration(mytype, statements)
+        else:
+            source_type = self.read_node_text(mytype)
+
+        declarators = self.find_children_by_field(node, "declarator")
+        for declarator in declarators:
+            target_type = source_type
+            current_declarator = declarator
+
+            while child_declarator := self.find_child_by_field(current_declarator, "declarator"):
+                if current_declarator.type == "pointer_declarator":
+                    target_type += "*"
+                elif current_declarator.type == "array_declarator":
+                    target_type += re.sub(r'^\w+', '', self.read_node_text(current_declarator))
+
+                current_declarator = child_declarator
+
+            target = self.read_node_text(current_declarator)
+            self.append_stmts(statements,  node, {"type_alias_decl" : {"name" : target, "data_type" : target_type}})
 
     def internal_struct_init(self, node, statements, value, mytype, struct_name):
         struct_or_union = "struct" if mytype.type == "struct_specifier" else "union"
@@ -1086,7 +1101,7 @@ class Parser(common_parser.Parser):
         if body:
             self.enum_body(body, enum_constants)
             self.append_stmts(statements,  node, {"enum_decl": {"name": name, "attrs": attrs, "enum_constants": enum_constants}})
-        return f"name"
+        return name
 
     def enum_body(self, node, enum_constants_list):
         enumerator_children = self.find_children_by_type(node, "enumerator")
@@ -1348,7 +1363,4 @@ class Parser(common_parser.Parser):
     # ----------------------------------------------------------------------------
 
     def is_comment(self, node):
-        # 判断是否//开头。 但会不会把printf("//xxxx")也给屏蔽了
-        if self.read_node_text(node).startswith("//"):
-            return True
-        return False
+        return node.type == "comment"
