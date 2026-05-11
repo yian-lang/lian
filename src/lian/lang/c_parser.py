@@ -53,6 +53,7 @@ class Parser(common_parser.Parser):
         }
 
         self.DECLARATION_HANDLER_MAP = {
+            "preproc_include"               : self.include_directive,
             "function_definition"           : self.function_declaration,
             "type_definition"               : self.type_definition,
             "parameter_declaration"         : self.parameter_declaration,
@@ -78,6 +79,25 @@ class Parser(common_parser.Parser):
             "seh_try_statement"             : self.seh_try_statement,
             "seh_leave_statement"           : self.seh_leave_statement,
         }
+
+    def include_directive(self, node, statements):
+        path = self.find_child_by_field(node, "path")
+        if path is None:
+            return ""
+
+        include_name = self.read_node_text(path).strip()
+        if len(include_name) >= 2:
+            if (
+                include_name[0] == '"' and include_name[-1] == '"'
+            ) or (
+                include_name[0] == "<" and include_name[-1] == ">"
+            ):
+                include_name = include_name[1:-1]
+
+        self.append_stmts(
+            statements, node, {"import_stmt": {"name": include_name, "alias": include_name}}
+        )
+        return include_name
 
 
     # 判断是不是“表达式”类型
