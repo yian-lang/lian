@@ -15,6 +15,7 @@ from lian.config.constants import EVENT_KIND
 from lian.events.handler_template import EventData
 from lian.util.loader import Loader
 from lian.incremental.unit_level_incremental_checker import UnitLevelIncrementalChecker
+from lian.lang.code_preprocessor import prepare_code
 
 EXTENSIONS_LANG = lang_config.EXTENSIONS_LANG
 
@@ -217,6 +218,7 @@ class GIRParser:
         self.output_path = output_path
         self.max_rows = config.MAX_ROWS
         self.count = 0
+        self.ananymous_func_to_scope = {}
 
     def obtain_ast_parser(self, lang: lang_config.LangConfig):
         try:
@@ -294,6 +296,7 @@ class GIRParser:
         gir_statements = []
         parser = lang.parser(self.options, unit_info)
         parser.parse_gir(tree.root_node, gir_statements)
+        self.ananymous_func_to_scope = getattr(parser, "ananymous_func_to_scope", {})
         return gir_statements
 
     def deal_with_file_unit(self, current_node_id, unit_info, file_unit, lang_table):
@@ -317,12 +320,16 @@ class GIRParser:
 
         event = EventData(lang_option, EVENT_KIND.UNFLATTENED_GIR_LIST_GENERATED, gir_statements)
         self.event_manager.notify(event)
+        if lang_option == "abc":
+            event.out_data = prepare_code(self.ananymous_func_to_scope).run(event.out_data)
         current_node_id, flatten_nodes = GIRProcessing(current_node_id).flatten(event.out_data)
         if not flatten_nodes:
             return (current_node_id, flatten_nodes)
 
         event = EventData(lang_option, EVENT_KIND.GIR_LIST_GENERATED, flatten_nodes)
         self.event_manager.notify(event)
+        if lang_option == "abc":
+            event.out_data = prepare_code().find_lex_var(event.out_data)
         if self.options.debug and self.options.print_stmts:
             pprint.pprint(event.out_data, compact=True, sort_dicts=False)
 

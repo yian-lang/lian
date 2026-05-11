@@ -386,6 +386,16 @@ LIAN_INTERNAL = util.SimpleEnum({
     "ROOT_SCOPE"                    : 0
 })
 
+ABC_INTERNAL = util.SimpleEnum({
+    "TRUE"                          : "true",
+    "FALSE"                         : "false",
+    "NULL"                          : "null",
+    "UNDEFINED"                     : "undefined",
+    "HOLE"                          : "hole",
+    "THIS"                          : "%this",
+    "ANONYMOUS"                     : "%mm",
+})
+
 JS_PROTOTYPE = util.SimpleEnum({
     "PROTOTYPE"                     : "prototype",
     "PROTO"                         : "__proto__",

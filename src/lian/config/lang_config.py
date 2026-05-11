@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import os
 from lian.config.config import LANG_SO_DIR
 from lian.lang import (
+    abc_parser,
     c_parser,
     csharp_parser,
     go_parser,
@@ -26,6 +27,7 @@ class LangConfig:
 
 
 LANG_TABLE = [
+    LangConfig(name = "abc", extension = [".txt"], parser = abc_parser.Parser),
     LangConfig(name = "c", extension = [".c", ".h", ".i",], parser = c_parser.Parser),
     LangConfig(name = "csharp", extension = [".cs"], parser = csharp_parser.Parser),
     LangConfig(name = "go", extension = [".go"], parser = go_parser.Parser),
