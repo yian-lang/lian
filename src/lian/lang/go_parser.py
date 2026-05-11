@@ -90,8 +90,7 @@ class Parser(common_parser.Parser):
         }
 
     def is_comment(self, node):
-        # return node.type in ["line_comment", "block_comment"]
-        pass
+        return node.type in ["comment", "line_comment", "block_comment"]
 
     def is_identifier(self, node):
         return node.type == "identifier"
@@ -143,7 +142,11 @@ class Parser(common_parser.Parser):
         return self.check_type_handler(node) is not None
 
     def parse_type(self, node, statements):
+        if not node:
+            return ""
         handler = self.check_type_handler(node)
+        if not handler:
+            return self.read_node_text(node)
         return handler(node, statements)
 
     def interpreted_string_literal(self, node, statements, replacement):
@@ -449,6 +452,8 @@ class Parser(common_parser.Parser):
     def type_declaration(self, node, statements):
         for child in node.named_children:
             if self.is_comment(child):
+                continue
+            if child.type not in ["type_spec", "type_alias"]:
                 continue
             name_node = self.find_child_by_field(child, "name")
             shadow_name = self.read_node_text(name_node)
