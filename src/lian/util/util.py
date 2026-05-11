@@ -40,6 +40,12 @@ def is_none(element):
 def is_available(element):
     return not is_empty(element)
 
+def hex_to_decimal(hex_str):
+    try:
+        return int(hex_str, 16)
+    except ValueError:
+        return hex_str
+
 def strict_eval(content):
     bytecode =compile(content, "", "eval")
     for insn in dis.get_instructions(bytecode):

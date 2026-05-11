@@ -123,6 +123,8 @@ def preprocess_abc_loop(data: EventData):
 
     # Output results
     processed_code = "\n".join(processed_lines)
+    data.out_data = processed_code
+    return er.EventHandlerReturnKind.SUCCESS
 
 def preprocess_python_import_statements(data: EventData):
     # """
