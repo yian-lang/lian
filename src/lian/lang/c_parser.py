@@ -86,16 +86,21 @@ class Parser(common_parser.Parser):
             return ""
 
         include_name = self.read_node_text(path).strip()
+        include_kind = ""
         if len(include_name) >= 2:
             if (
                 include_name[0] == '"' and include_name[-1] == '"'
-            ) or (
-                include_name[0] == "<" and include_name[-1] == ">"
             ):
+                include_kind = "local"
+                include_name = include_name[1:-1]
+            elif include_name[0] == "<" and include_name[-1] == ">":
+                include_kind = "system"
                 include_name = include_name[1:-1]
 
         self.append_stmts(
-            statements, node, {"import_stmt": {"name": include_name, "alias": include_name}}
+            statements,
+            node,
+            {"import_stmt": {"name": include_name, "alias": include_name, "attrs": include_kind}},
         )
         return include_name
 
