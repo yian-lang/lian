@@ -1180,14 +1180,34 @@ class Parser(common_parser.Parser):
         name = node.named_children[0]
         self.append_stmts(statements, node, {"goto_stmt": {"name": self.read_node_text(name)}})
 
-    def go_statement(self, node, statements):
-        func = node.named_children[0]
-        function = self.find_child_by_field(func, "function")
-        shadow_function = self.parse(function, statements)
+    def async_call_statement(self, node, statements, attr):
+        func = node.named_children[0] if node.named_child_count else None
+        while func and func.type == "parenthesized_expression" and func.named_child_count == 1:
+            func = func.named_children[0]
 
         args_list = []
         type_arguments = []
+        shadow_function = ""
+
+        if not func:
+            tmp_var = self.tmp_variable()
+            self.append_stmts(statements, node, {"call_stmt": {"attrs": [attr], "target": tmp_var, "name": shadow_function, "type_parameters": type_arguments, "args": args_list}})
+            return
+
+        if func.type != "call_expression":
+            shadow_function = self.parse(func, statements) or self.read_node_text(func)
+            tmp_var = self.tmp_variable()
+            self.append_stmts(statements, node, {"call_stmt": {"attrs": [attr], "target": tmp_var, "name": shadow_function, "type_parameters": type_arguments, "args": args_list}})
+            return
+
+        function = self.find_child_by_field(func, "function")
+        shadow_function = self.parse(function, statements) if function else self.read_node_text(func)
         args = self.find_child_by_field(func, "arguments")
+
+        if not args:
+            tmp_var = self.tmp_variable()
+            self.append_stmts(statements, node, {"call_stmt": {"attrs": [attr], "target": tmp_var, "name": shadow_function, "type_parameters": type_arguments, "args": args_list}})
+            return
 
         if shadow_function not in ["new", "make"]:
             type_arguments_node = self.find_child_by_field(func, "type_arguments")
@@ -1205,7 +1225,8 @@ class Parser(common_parser.Parser):
                     args_list.append(shadow_variable)
 
         else:
-            args_list.append(self.parse_type(args.children[1], statements))
+            if len(args.children) > 1:
+                args_list.append(self.parse_type(args.children[1], statements))
             for child in args.named_children[2:]:
                 if self.is_comment(child):
                     continue
@@ -1215,46 +1236,13 @@ class Parser(common_parser.Parser):
                     args_list.append(shadow_variable)
 
         tmp_var = self.tmp_variable()
-        attrs = ["go"]
-        self.append_stmts(statements, node, {"call_stmt": {"attrs": attrs, "target": tmp_var, "name": shadow_function, "type_parameters": type_arguments, "args": args_list}})
+        self.append_stmts(statements, node, {"call_stmt": {"attrs": [attr], "target": tmp_var, "name": shadow_function, "type_parameters": type_arguments, "args": args_list}})
+
+    def go_statement(self, node, statements):
+        self.async_call_statement(node, statements, "go")
 
     def defer_statement(self, node, statements):
-        func = node.named_children[0]
-        function = self.find_child_by_field(func, "function")
-        shadow_function = self.parse(function, statements)
-
-        args_list = []
-        type_arguments = []
-        args = self.find_child_by_field(func, "arguments")
-
-        if shadow_function not in ["new", "make"]:
-            type_arguments_node = self.find_child_by_field(func, "type_arguments")
-            if type_arguments_node:
-                for child in type_arguments_node.children[1:-1]:
-                    if self.is_type(child):
-                        type_arguments.append(self.parse_type(child, statements))
-
-            for child in args.named_children:
-                if self.is_comment(child):
-                    continue
-
-                shadow_variable = self.parse(child, statements)
-                if shadow_variable:
-                    args_list.append(shadow_variable)
-
-        else:
-            args_list.append(self.parse_type(args.children[1], statements))
-            for child in args.named_children[2:]:
-                if self.is_comment(child):
-                    continue
-
-                shadow_variable = self.parse(child, statements)
-                if shadow_variable:
-                    args_list.append(shadow_variable)
-
-        tmp_var = self.tmp_variable()
-        attrs = ["defer"]
-        self.append_stmts(statements, node, {"call_stmt": {"attrs": attrs, "target": tmp_var, "name": shadow_function, "type_parameters": type_arguments, "args": args_list}})
+        self.async_call_statement(node, statements, "defer")
 
     def for_statement(self, node, statements):
         _clause = node.named_children[0]

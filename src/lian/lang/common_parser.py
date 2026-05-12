@@ -18,6 +18,7 @@ class Parser:
         3. 预定义常量映射表（当前注释状态）
         4. 初始化内部状态
         """
+        sys.setrecursionlimit(max(sys.getrecursionlimit(), 10000))
         self.tmp_variable_id = 0
         self.method_id = 0
         self.class_id = 0
