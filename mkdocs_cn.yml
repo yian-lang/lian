@@ -3,7 +3,7 @@
 # -------------------------------------------------------------------
 site_name: 莲花Lian程序分析框架
 site_url: https://yian-lang.net/lian/cn
-repo_url: https://github.com/yian-lang/lian
+repo_url: https://gitee.com/fdu-ssr/lian/
 docs_dir: docs/cn
 
 theme:
