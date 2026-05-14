@@ -2,8 +2,8 @@
 # MkDocs Configuration for Chinese Version (/)
 # -------------------------------------------------------------------
 site_name: 莲花Lian程序分析框架
-site_url: https://yang-guangliang.github.io/lian/cn
-repo_url: https://github.com/yang-guangliang/lian
+site_url: https://yian-lang.net/lian/cn
+repo_url: https://github.com/yian-lang/lian
 docs_dir: docs/cn
 
 theme:
