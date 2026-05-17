@@ -897,6 +897,14 @@ class Parser(common_parser.Parser):
 
         declarators = self.find_children_by_field(node, "declarator")
         for declarator in declarators:
+            function_pointer_declarator = self.extract_function_pointer_declarator(declarator, source_type)
+            if function_pointer_declarator:
+                self.append_stmts(statements,  node, {"type_alias_decl" : {
+                    "name" : function_pointer_declarator["name"],
+                    "data_type" : function_pointer_declarator["data_type"],
+                }})
+                continue
+
             target_type = source_type
             current_declarator = declarator
 
@@ -910,6 +918,54 @@ class Parser(common_parser.Parser):
 
             target = self.read_node_text(current_declarator)
             self.append_stmts(statements,  node, {"type_alias_decl" : {"name" : target, "data_type" : target_type}})
+
+    def find_first_node_by_type(self, node, target_type):
+        if node is None:
+            return None
+
+        if node.type == target_type:
+            return node
+
+        for child in node.named_children:
+            found_node = self.find_first_node_by_type(child, target_type)
+            if found_node:
+                return found_node
+
+        return None
+
+    def extract_declarator_name(self, node):
+        if node is None:
+            return ""
+
+        if node.type in ["identifier", "type_identifier", "field_identifier"]:
+            return self.read_node_text(node)
+
+        for child in node.named_children:
+            name = self.extract_declarator_name(child)
+            if name:
+                return name
+
+        return ""
+
+    def extract_function_pointer_declarator(self, declarator, base_type):
+        function_declarator = self.find_first_node_by_type(declarator, "function_declarator")
+        if function_declarator is None:
+            return None
+
+        function_name_declarator = self.find_child_by_field(function_declarator, "declarator")
+        pointer_declarator = self.find_first_node_by_type(function_name_declarator, "pointer_declarator")
+        if pointer_declarator is None:
+            return None
+
+        name = self.extract_declarator_name(pointer_declarator)
+        if not name:
+            return None
+
+        function_pointer_type = self.read_node_text(function_declarator).replace(name, "", 1)
+        return {
+            "name": name,
+            "data_type": f"{base_type} {function_pointer_type}".strip(),
+        }
 
     def internal_struct_init(self, node, statements, value, mytype, struct_name):
         struct_or_union = "struct" if mytype.type == "struct_specifier" else "union"
@@ -1060,18 +1116,25 @@ class Parser(common_parser.Parser):
             value = self.find_child_by_field(declarator, "value")
             if value != None and value.type == "compound_literal_expression":
                 value = self.find_child_by_field(value, "value")
-            #处理嵌套的declarator
-            array_list = []
-            while child_declarator := self.find_child_by_field(declarator, "declarator"):
-                if declarator.type == "array_declarator":
-                    has_init = True
-                    array_list.append("array")
-                elif declarator.type == "function_declarator":
-                    return
-                elif declarator.type == "pointer_declarator":
-                    shadow_type += '*'
-                #干掉了search_for_modifier,attr没意思
-                declarator = child_declarator
+            function_pointer_declarator = self.extract_function_pointer_declarator(declarator, shadow_type)
+            if function_pointer_declarator:
+                shadow_type = function_pointer_declarator["data_type"]
+                name = function_pointer_declarator["name"]
+                array_list = [shadow_type]
+            else:
+                #处理嵌套的declarator
+                array_list = []
+                while child_declarator := self.find_child_by_field(declarator, "declarator"):
+                    if declarator.type == "array_declarator":
+                        has_init = True
+                        array_list.append("array")
+                    elif declarator.type == "function_declarator":
+                        return
+                    elif declarator.type == "pointer_declarator":
+                        shadow_type += '*'
+                    #干掉了search_for_modifier,attr没意思
+                    declarator = child_declarator
+                name = self.read_node_text(declarator)
             array_list.append(shadow_type)
             if value is None:
                 pass
@@ -1081,7 +1144,6 @@ class Parser(common_parser.Parser):
             else:
                 has_init = True
                 shadow_value = self.parse(value, statements)
-            name = self.read_node_text(declarator)
 
             self.append_stmts(statements,  node, {"variable_decl":
                                {"attrs": modifiers,
