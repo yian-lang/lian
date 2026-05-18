@@ -2497,6 +2497,18 @@ class StmtStates:
                 continue
 
             symbol_id = symbol_id_state.value
+            if symbol_id not in self.frame.defined_symbols:
+                index = self.create_state_and_add_space(
+                    status,
+                    stmt_id,
+                    source_symbol_id=stmt_id,
+                    state_type=STATE_TYPE_KIND.UNSOLVED,
+                    parent_state=symbol_id_state,
+                    parent_state_index=symbol_id_index
+                )
+                target_states.add(index)
+                continue
+
             all_defs = self.frame.defined_symbols[symbol_id]
             all_defs &= reachable_symbol_defs
             for def_stmt_id, def_source in all_defs:
@@ -3876,4 +3888,3 @@ class StmtStates:
 
         target_symbol.states = []
         return P2ResultFlag()
-

@@ -6,6 +6,13 @@ from lian.lang import common_parser
 
 class Parser(common_parser.Parser):
     def init(self):
+        self.known_type_names = {
+            "any", "bool", "byte", "complex64", "complex128", "error",
+            "float32", "float64", "int", "int8", "int16", "int32", "int64",
+            "rune", "string", "uint", "uint8", "uint16", "uint32", "uint64",
+            "uintptr",
+        }
+
         self.LITERAL_MAP = {
             # go语言中没有literal，true、false等被视为expression，为优化代码将其视为literal
             "identifier"                        : self.regular_literal,
@@ -457,6 +464,8 @@ class Parser(common_parser.Parser):
                 continue
             name_node = self.find_child_by_field(child, "name")
             shadow_name = self.read_node_text(name_node)
+            if shadow_name:
+                self.known_type_names.add(shadow_name)
 
             type_node = self.find_child_by_field(child, "type")
             shadow_type = self.parse_type(type_node, statements)
@@ -840,8 +849,59 @@ class Parser(common_parser.Parser):
                                            "end": shadow_end, "step": shadow_capacity}})
         return tmp_var
 
+    def expression_node_to_type(self, node, statements):
+        if not node:
+            return None
+
+        if node.type == "parenthesized_expression" and node.named_child_count == 1:
+            return self.expression_node_to_type(node.named_children[0], statements)
+
+        if node.type == "unary_expression":
+            operator = self.find_child_by_field(node, "operator")
+            operand = self.find_child_by_field(node, "operand")
+            if self.read_node_text(operator) == "*":
+                type_text = self.expression_node_to_type(operand, statements)
+                if type_text:
+                    return ["pointer_type", type_text]
+            return None
+
+        if node.type == "identifier":
+            type_text = self.read_node_text(node)
+            if type_text in self.known_type_names or type_text[:1].isupper():
+                return type_text
+            return None
+
+        if node.type == "selector_expression":
+            operand = self.find_child_by_field(node, "operand")
+            field = self.find_child_by_field(node, "field")
+            if operand and field:
+                return ["qualified_type", {"package": self.read_node_text(operand), "name": self.read_node_text(field)}]
+
+        if self.is_type(node):
+            return self.parse_type(node, statements)
+
+        return None
+
+    def pointer_type_conversion_call(self, node, statements, function, args):
+        if not args or len(args.named_children) != 1:
+            return None
+
+        shadow_type = self.expression_node_to_type(function, statements)
+        if not shadow_type or not (isinstance(shadow_type, list) and shadow_type[0] == "pointer_type"):
+            return None
+
+        shadow_operand = self.parse(args.named_children[0], statements)
+        tmp_var = self.tmp_variable()
+        self.append_stmts(statements, node, {"type_cast_stmt": {"target": tmp_var, "data_type": shadow_type, "source": shadow_operand}})
+        return tmp_var
+
     def call_expression(self, node, statements):
         function = self.find_child_by_field(node, "function")
+        args = self.find_child_by_field(node, "arguments")
+        shadow_conversion = self.pointer_type_conversion_call(node, statements, function, args)
+        if shadow_conversion:
+            return shadow_conversion
+
         receiver_name = None
         field_name = None
         shadow_function = None
@@ -852,7 +912,6 @@ class Parser(common_parser.Parser):
 
         args_list = []
         type_arguments = []
-        args = self.find_child_by_field(node, "arguments")
 
         if function.type == "selector_expression" or shadow_function not in ["new", "make"]:
             type_arguments_node = self.find_child_by_field(node, "type_arguments")
