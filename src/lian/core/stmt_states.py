@@ -2437,19 +2437,57 @@ class StmtStates:
         return P2ResultFlag()
 
     def addr_of_stmt_state(self, stmt_id, stmt, status: StmtStatus, in_states):
+        if not status.used_symbols:
+            return P2ResultFlag()
+
         source_symbol_index = status.used_symbols[0]
-        source_symbol: Symbol = self.frame.symbol_state_space[source_symbol_index]
         defined_symbol_index = status.defined_symbol
-        defined_symbol: Symbol = self.frame.symbol_state_space[defined_symbol_index]
-        state_index = self.create_state_and_add_space(
-            status, stmt_id, source_symbol_id=stmt_id, value=source_symbol.symbol_id,
-            access_path=self.copy_and_extend_access_path(
-                source_symbol.access_path,
-                AccessPoint(kind=ACCESS_POINT_KIND.ADDR_OF)
+
+        if source_symbol_index < 0 or defined_symbol_index < 0:
+            return P2ResultFlag()
+
+        source_symbol = self.frame.symbol_state_space[source_symbol_index]
+        defined_symbol = self.frame.symbol_state_space[defined_symbol_index]
+        if not isinstance(source_symbol, Symbol) or not isinstance(defined_symbol, Symbol):
+            return P2ResultFlag()
+
+        new_state_indexes = set()
+        source_state_indexes = self.read_used_states(source_symbol_index, in_states)
+        for source_state_index in source_state_indexes:
+            source_state = self.frame.symbol_state_space[source_state_index]
+            if not isinstance(source_state, State):
+                continue
+
+            state_index = self.create_state_and_add_space(
+                status, stmt_id,
+                source_symbol_id=source_symbol.symbol_id,
+                value=source_symbol.symbol_id,
+                access_path=self.copy_and_extend_access_path(
+                    source_state.access_path,
+                    AccessPoint(kind=ACCESS_POINT_KIND.ADDR_OF)
+                ),
+                parent_state=source_state,
+                parent_state_index=source_state_index,
+                edge_name=stmt.operation,
             )
-        )
-        self.update_access_path_state_id(state_index)
-        defined_symbol.states = {state_index}
+            self.update_access_path_state_id(state_index)
+            new_state_indexes.add(state_index)
+
+        if not new_state_indexes:
+            state_index = self.create_state_and_add_space(
+                status, stmt_id,
+                source_symbol_id=source_symbol.symbol_id,
+                value=source_symbol.symbol_id,
+                state_type=STATE_TYPE_KIND.UNSOLVED,
+                access_path=[
+                    AccessPoint(key=source_symbol.name),
+                    AccessPoint(kind=ACCESS_POINT_KIND.ADDR_OF),
+                ],
+            )
+            self.update_access_path_state_id(state_index)
+            new_state_indexes.add(state_index)
+
+        defined_symbol.states = new_state_indexes
 
         return P2ResultFlag()
 
