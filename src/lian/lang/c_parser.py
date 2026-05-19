@@ -277,7 +277,7 @@ class Parser(common_parser.Parser):
     # 处理函数调用
     def call_expression(self, node, statements):
         function = self.find_child_by_field(node, "function")
-        shadow_name = self.parse(function)
+        shadow_name = self.parse(function, statements)
 
         arguments = self.find_child_by_field(node, "arguments")
         arg_list = []
@@ -962,9 +962,11 @@ class Parser(common_parser.Parser):
             return None
 
         function_pointer_type = self.read_node_text(function_declarator).replace(name, "", 1)
+        is_array = self.find_first_node_by_type(pointer_declarator, "array_declarator") is not None
         return {
             "name": name,
             "data_type": f"{base_type} {function_pointer_type}".strip(),
+            "is_array": is_array,
         }
 
     def internal_struct_init(self, node, statements, value, mytype, struct_name):
@@ -1120,7 +1122,10 @@ class Parser(common_parser.Parser):
             if function_pointer_declarator:
                 shadow_type = function_pointer_declarator["data_type"]
                 name = function_pointer_declarator["name"]
-                array_list = [shadow_type]
+                if function_pointer_declarator["is_array"]:
+                    array_list = ["array", shadow_type]
+                else:
+                    array_list = [shadow_type]
             else:
                 #处理嵌套的declarator
                 array_list = []
