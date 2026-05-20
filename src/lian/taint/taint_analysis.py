@@ -21,6 +21,7 @@ from lian.taint.taint_structs import (
     TaintEnv,
     Flow,
 )
+from pyarrow.lib import ArrowInvalid
 import traceback
 
 class PathFinder:
@@ -1200,10 +1201,16 @@ class TaintAnalysis:
             print("\n########### # Phase IV: Taint Analysis # ##########")
 
         all_flows = []
+        skipped_entry_points = []
         for method_id in self.loader.get_all_method_ids():
             self.current_entry_point = method_id
-            self.sfg = self.loader.get_global_sfg_by_entry_point(method_id)
-            self._update_sfg(self.sfg)
+            try:
+                self.sfg = self.loader.get_global_sfg_by_entry_point(method_id)
+                self._update_sfg(self.sfg)
+            except (ArrowInvalid, OSError, FileNotFoundError) as exc:
+                skipped_entry_points.append(method_id)
+                print(f"[WARNING] Skip taint entry point {method_id}: {exc}")
+                continue
             if not self.sfg:
                 continue
             self.taint_manager = TaintEnv()
@@ -1218,5 +1225,7 @@ class TaintAnalysis:
         else:
             if not self.options.quiet:
                 self.print_and_write_flows(all_flows)
-        return self
 
+        if skipped_entry_points:
+            print(f"Skipped {len(skipped_entry_points)} entry points due to unreadable SFG bundles.")
+        return self

@@ -8,6 +8,7 @@ from io import BytesIO
 from pathlib import Path
 import pandas as pd
 import networkx as nx
+from pyarrow.lib import ArrowInvalid
 
 import tests.run.init_test as init_test
 
