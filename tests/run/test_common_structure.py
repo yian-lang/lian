@@ -6,12 +6,16 @@ import tempfile
 import unittest
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 import pandas as pd
 import networkx as nx
+from pyarrow.lib import ArrowInvalid
 
 import tests.run.init_test as init_test
 
 from lian import common_structs as common_structure
+from lian.taint.taint_analysis import TaintAnalysis
 
 class TestSearchGraph(unittest.TestCase):
     def setUp(self):
@@ -109,6 +113,82 @@ class TestCP2AddrOf(unittest.TestCase):
                 0,
                 msg=f"stdout:\n{result.stdout}\n\nstderr:\n{result.stderr}",
             )
+
+
+class TestTaintUnreadableSFG(unittest.TestCase):
+    def _make_analysis(self, loader):
+        lian = SimpleNamespace(loader=loader)
+        options = SimpleNamespace(
+            default_settings=str(Path(__file__).resolve().parents[2] / "default_settings"),
+            quiet=False,
+        )
+        return TaintAnalysis(lian, options)
+
+    def test_run_skips_unreadable_entry_point_and_continues(self):
+        loader = SimpleNamespace(
+            get_all_method_ids=lambda: [101, 202, 303],
+            get_global_sfg_by_entry_point=lambda method_id: (
+                (_ for _ in ()).throw(ArrowInvalid("File is too small"))
+                if method_id == 202 else
+                f"sfg-{method_id}"
+            ),
+        )
+        analysis = self._make_analysis(loader)
+        processed = []
+
+        def fake_update_sfg(sfg):
+            analysis.sfg = sfg
+
+        analysis._update_sfg = fake_update_sfg
+        analysis.find_sources = lambda: processed.append(("sources", analysis.current_entry_point)) or []
+        analysis.find_sinks = lambda: processed.append(("sinks", analysis.current_entry_point)) or []
+        analysis.find_flows = lambda sources, sinks: processed.append(("flows", analysis.current_entry_point)) or []
+
+        with patch("builtins.print") as mock_print:
+            result = analysis.run()
+
+        self.assertIs(result, analysis)
+        self.assertEqual(
+            processed,
+            [
+                ("sources", 101), ("sinks", 101), ("flows", 101),
+                ("sources", 303), ("sinks", 303), ("flows", 303),
+            ],
+        )
+        printed = "\n".join(" ".join(str(arg) for arg in call.args) for call in mock_print.call_args_list)
+        self.assertIn("Skip taint entry point 202", printed)
+        self.assertIn("Skipped 1 entry points due to unreadable SFG bundles.", printed)
+
+    def test_run_preserves_normal_taint_flow_path(self):
+        loader = SimpleNamespace(
+            get_all_method_ids=lambda: [11, 22],
+            get_global_sfg_by_entry_point=lambda method_id: f"sfg-{method_id}",
+        )
+        analysis = self._make_analysis(loader)
+        processed = []
+
+        def fake_update_sfg(sfg):
+            analysis.sfg = sfg
+
+        analysis._update_sfg = fake_update_sfg
+        analysis.find_sources = lambda: processed.append(("sources", analysis.current_entry_point)) or ["source"]
+        analysis.find_sinks = lambda: processed.append(("sinks", analysis.current_entry_point)) or ["sink"]
+        analysis.find_flows = lambda sources, sinks: processed.append(("flows", analysis.current_entry_point)) or []
+
+        with patch("builtins.print") as mock_print:
+            result = analysis.run()
+
+        self.assertIs(result, analysis)
+        self.assertEqual(
+            processed,
+            [
+                ("sources", 11), ("sinks", 11), ("flows", 11),
+                ("sources", 22), ("sinks", 22), ("flows", 22),
+            ],
+        )
+        printed = "\n".join(" ".join(str(arg) for arg in call.args) for call in mock_print.call_args_list)
+        self.assertNotIn("Skip taint entry point", printed)
+        self.assertNotIn("Skipped 1 entry points", printed)
 
 
 
