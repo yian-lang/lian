@@ -114,6 +114,60 @@ class TestCP2AddrOf(unittest.TestCase):
                 msg=f"stdout:\n{result.stdout}\n\nstderr:\n{result.stderr}",
             )
 
+    def test_struct_field_write_does_not_crash_in_p2(self):
+        with tempfile.TemporaryDirectory(prefix="lian_c_p2_mem_write_") as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            project_dir = tmp_path / "project"
+            workspace_dir = tmp_path / "workspace"
+            project_dir.mkdir()
+            (project_dir / "mem_write.c").write_text(
+                "typedef struct Node {\n"
+                "    struct Node *next;\n"
+                "} Node;\n"
+                "\n"
+                "void link(Node *p, Node *q) {\n"
+                "    p->next = q;\n"
+                "}\n",
+                encoding="utf8",
+            )
+
+            env = os.environ.copy()
+            src_path = str(Path(__file__).resolve().parents[2] / "src")
+            env["PYTHONPATH"] = (
+                src_path
+                if not env.get("PYTHONPATH")
+                else src_path + os.pathsep + env["PYTHONPATH"]
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "lian.main",
+                    "run",
+                    str(project_dir),
+                    "-l",
+                    "c",
+                    "-w",
+                    str(workspace_dir),
+                    "-f",
+                    "--enable-p2",
+                    "-q",
+                ],
+                cwd=Path(__file__).resolve().parents[2],
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=60,
+            )
+
+            self.assertEqual(
+                result.returncode,
+                0,
+                msg=f"stdout:\n{result.stdout}\n\nstderr:\n{result.stderr}",
+            )
+
 
 class TestTaintUnreadableSFG(unittest.TestCase):
     def _make_analysis(self, loader):

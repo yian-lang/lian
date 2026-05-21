@@ -470,6 +470,14 @@ class StmtStates:
 
         return {index}
 
+    def find_defined_symbol_index_in_status(self, status: StmtStatus, symbol_id: int):
+        candidate_indexes = [status.defined_symbol, *status.implicitly_defined_symbols]
+        for symbol_index in candidate_indexes:
+            symbol = self.frame.symbol_state_space[symbol_index]
+            if isinstance(symbol, Symbol) and symbol.symbol_id == symbol_id:
+                return symbol_index
+        return -1
+
     def obtain_states(self, index):
         s = self.frame.symbol_state_space[index]
         if isinstance(s, State):
@@ -2547,21 +2555,19 @@ class StmtStates:
                 target_states.add(index)
                 continue
 
-            all_defs = self.frame.defined_symbols[symbol_id]
-            all_defs &= reachable_symbol_defs
-            for def_stmt_id, def_source in all_defs:
-                reachable_status = self.frame.stmt_id_to_status[def_stmt_id]
-                defined_symbol = self.frame.symbol_state_space[reachable_status.defined_symbol]
-                flag = True
-                if util.is_available(defined_symbol) and defined_symbol.symbol_id == def_source:
+            all_defs = self.frame.defined_symbols[symbol_id] & reachable_symbol_defs
+            for def_node in all_defs:
+                reachable_status = self.frame.stmt_id_to_status[def_node.stmt_id]
+                defined_symbol_index = self.find_defined_symbol_index_in_status(
+                    reachable_status,
+                    def_node.symbol_id,
+                )
+                if defined_symbol_index == -1:
+                    continue
+
+                defined_symbol = self.frame.symbol_state_space[defined_symbol_index]
+                if isinstance(defined_symbol, Symbol):
                     target_states.update(defined_symbol.states)
-                    flag = False
-                if flag:
-                    if def_source in reachable_status.implicitly_defined_symbols:
-                        index = reachable_status.implicitly_defined_symbols[def_source]
-                        defined_symbol = self.frame.symbol_state_space[index]
-                        if util.is_available(defined_symbol):
-                            target_states.update(defined_symbol.states)
 
         defined_symbol = self.frame.symbol_state_space[status.defined_symbol]
         defined_symbol.states = target_states
@@ -2576,7 +2582,7 @@ class StmtStates:
         source_states = self.read_used_states(source_symbol_index, in_states)
         address_states = self.read_used_states(address_symbol_index, in_states)
 
-        implicitly_defined_symbols = []
+        implicitly_defined_symbols = {}
 
         reachable_defs = self.frame.symbol_bit_vector_manager.explain(status.in_symbol_bits)
         for state_index in address_states:
@@ -2587,28 +2593,26 @@ class StmtStates:
             if symbol_id not in self.frame.defined_symbols:
                 # TODO: need to deal with such a case
                 continue
-            all_defs = self.frame.defined_symbols[symbol_id]
-            all_defs &= reachable_defs
+            all_defs = self.frame.defined_symbols[symbol_id] & reachable_defs
 
-            for def_stmt_id, def_source in all_defs:
-                target_status = self.frame.stmt_id_to_status[def_stmt_id]
-                defined_symbol = self.frame.symbol_state_space[target_status.defined_symbol]
-                if util.is_available(defined_symbol):
-                    if defined_symbol.symbol_id == def_source:
-                        new_symbol = defined_symbol.copy(stmt_id)
-                        new_symbol.states = source_states
-                        implicitly_defined_symbols[def_source] = self.frame.symbol_state_space.add(new_symbol)
-                        continue
+            for def_node in all_defs:
+                target_status = self.frame.stmt_id_to_status[def_node.stmt_id]
+                defined_symbol_index = self.find_defined_symbol_index_in_status(
+                    target_status,
+                    def_node.symbol_id,
+                )
+                if defined_symbol_index == -1:
+                    continue
 
-                if def_source in target_status.implicitly_defined_symbols:
-                    index = target_status.implicitly_defined_symbols[def_source]
-                    defined_symbol = self.frame.symbol_state_space[index]
-                    if util.is_available(defined_symbol):
-                        new_symbol = defined_symbol.copy(stmt_id)
-                        new_symbol.states = source_states
-                        implicitly_defined_symbols[def_source] = self.frame.symbol_state_space.add(new_symbol)
+                defined_symbol = self.frame.symbol_state_space[defined_symbol_index]
+                if not isinstance(defined_symbol, Symbol):
+                    continue
 
-        status.implicitly_defined_symbols = implicitly_defined_symbols
+                new_symbol = defined_symbol.copy(stmt_id)
+                new_symbol.states = source_states
+                implicitly_defined_symbols[def_node.symbol_id] = self.frame.symbol_state_space.add(new_symbol)
+
+        status.implicitly_defined_symbols = list(implicitly_defined_symbols.values())
 
         return P2ResultFlag()
 
