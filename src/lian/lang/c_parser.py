@@ -1091,6 +1091,17 @@ class Parser(common_parser.Parser):
         shadow_value = inner_array_tmp_var
         return shadow_value
     # 变量、常量、数组、指针声明
+    def array_declarator_suffix(self, declarator):
+        dimensions = []
+        current_declarator = declarator
+        while current_declarator and current_declarator.type == "array_declarator":
+            size = self.find_child_by_field(current_declarator, "size")
+            dimensions.append(self.read_node_text(size))
+            current_declarator = self.find_child_by_field(current_declarator, "declarator")
+
+        dimensions.reverse()
+        return "".join(f"[{dimension}]" for dimension in dimensions)
+
     def variable_declaration(self, node, statements):
 
         modifiers = []
@@ -1124,16 +1135,20 @@ class Parser(common_parser.Parser):
             else:
                 #处理嵌套的declarator
                 array_list = []
+                array_suffix = ""
                 while child_declarator := self.find_child_by_field(declarator, "declarator"):
                     if declarator.type == "array_declarator":
                         has_init = True
                         array_list.append("array")
+                        if not array_suffix:
+                            array_suffix = self.array_declarator_suffix(declarator)
                     elif declarator.type == "function_declarator":
                         return
                     elif declarator.type == "pointer_declarator":
                         shadow_type += '*'
                     #干掉了search_for_modifier,attr没意思
                     declarator = child_declarator
+                shadow_type += array_suffix
                 name = self.read_node_text(declarator)
             array_list.append(shadow_type)
             if value is None:

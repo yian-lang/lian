@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from ctypes import c_void_p, cdll
 import os,sys
 import subprocess
 import tempfile
@@ -10,11 +11,14 @@ from types import SimpleNamespace
 from unittest.mock import patch
 import pandas as pd
 import networkx as nx
+import tree_sitter
 from pyarrow.lib import ArrowInvalid
 
 import tests.run.init_test as init_test
 
+from lian.config import lang_config
 from lian import common_structs as common_structure
+from lian.lang import c_parser
 from lian.taint.taint_analysis import TaintAnalysis
 
 class TestSearchGraph(unittest.TestCase):
@@ -62,6 +66,40 @@ class TestSearchGraph(unittest.TestCase):
 
     def test_pre_process_graph(self):
         pass
+
+
+class TestCParserArrayDataType(unittest.TestCase):
+    def parse_c_gir(self, code: str):
+        lang = next(item for item in lang_config.LANG_TABLE if item.name == "c")
+        lib = cdll.LoadLibrary(lang.so_path)
+        lang_fn = getattr(lib, "tree_sitter_c")
+        lang_fn.restype = c_void_p
+
+        language = tree_sitter.Language(lang_fn())
+        parser = tree_sitter.Parser(language)
+        tree = parser.parse(code.encode("utf8"))
+
+        options = type("Options", (), {
+            "debug": False,
+            "print_stmts": False,
+            "strict_parse_mode": False,
+        })()
+        unit_info = type("UnitInfo", (), {"original_path": "array_decl_test.c"})()
+        statements = []
+        c_parser.Parser(options, unit_info).parse_gir(tree.root_node, statements)
+        return statements
+
+    def test_array_declaration_data_type_keeps_declared_size(self):
+        statements = self.parse_c_gir(
+            "int arr[3];\n"
+            "int matrix[2][4];\n"
+            "int *ptrs[5];\n"
+        )
+
+        decls = [stmt["variable_decl"] for stmt in statements if "variable_decl" in stmt]
+        self.assertEqual(decls[0]["data_type"], "int[3]")
+        self.assertEqual(decls[1]["data_type"], "int[2][4]")
+        self.assertEqual(decls[2]["data_type"], "int*[5]")
 
 
 class TestCP2AddrOf(unittest.TestCase):
