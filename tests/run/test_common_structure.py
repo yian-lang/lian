@@ -101,6 +101,39 @@ class TestCParserArrayDataType(unittest.TestCase):
         self.assertEqual(decls[1]["data_type"], "int[2][4]")
         self.assertEqual(decls[2]["data_type"], "int*[5]")
 
+    def test_multidimensional_array_initializer_stays_array(self):
+        statements = self.parse_c_gir(
+            "int matrix[2][3] = {{1, 2, 3}, {4, 5, 6}};\n"
+        )
+
+        operations = [
+            next(iter(stmt.keys()))
+            for stmt in statements
+            if isinstance(stmt, dict) and stmt
+        ]
+        new_arrays = [stmt["new_array"] for stmt in statements if "new_array" in stmt]
+        empty_type_structs = [
+            stmt["new_struct"]
+            for stmt in statements
+            if "new_struct" in stmt and not stmt["new_struct"].get("data_type")
+        ]
+
+        self.assertGreaterEqual(len(new_arrays), 3)
+        self.assertNotIn("new_struct", operations)
+        self.assertEqual(empty_type_structs, [])
+
+    def test_struct_initializer_with_array_field_stays_struct(self):
+        statements = self.parse_c_gir(
+            "struct Buffer { int data[4]; int *cursor; };\n"
+            "struct Buffer buf = {{3, 1, 4, 1}, 0};\n"
+        )
+
+        struct_news = [stmt["new_struct"] for stmt in statements if "new_struct" in stmt]
+        self.assertTrue(
+            any(stmt.get("data_type") == "Buffer" for stmt in struct_news),
+            msg=f"new_struct statements: {struct_news}",
+        )
+
 
 class TestCP2AddrOf(unittest.TestCase):
     def test_addr_of_parameter_does_not_crash_in_p2(self):
