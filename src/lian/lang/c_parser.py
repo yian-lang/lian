@@ -831,21 +831,23 @@ class Parser(common_parser.Parser):
 
     def initializer_list(self, node, statements, array_list):
         tmp_var = self.tmp_variable()
-        is_array = True
+        array_context = list(array_list)
+        is_array = False
         data_type = ""
-        if len(array_list) != 0 and array_list[-1] != "array":
-            data_type = array_list[-1]
-            array_list.pop()
-        if len(array_list) != 0 and array_list[0] == "array":
+        if len(array_context) != 0 and array_context[-1] != "array":
+            data_type = array_context[-1]
+            array_context = array_context[:-1]
+        if len(array_context) != 0 and array_context[0] == "array":
             self.append_stmts(statements,  node, {"new_array" : { "data_type" : data_type, "target": tmp_var}})
-            array_list.pop()
+            child_array_context = array_context[1:]
+            is_array = True
         else:
             self.append_stmts(statements,  node, {"new_struct": { "data_type" : data_type, "target":tmp_var}})
-            is_array = False
+            child_array_context = array_context
         index = 0
         for child_list in node.children:
             if child_list.type == "initializer_list":
-                result = self.initializer_list(child_list, statements, array_list)
+                result = self.initializer_list(child_list, statements, child_array_context)
 
                 if is_array:
                     self.append_stmts(statements,  node, {"array_write":

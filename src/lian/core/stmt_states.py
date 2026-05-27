@@ -2317,6 +2317,14 @@ class StmtStates:
         defined_symbol = self.frame.symbol_state_space[defined_symbol_index]
         if not isinstance(defined_symbol, Symbol):
             return P2ResultFlag()
+        if not status.used_symbols:
+            self.create_unsolved_state_and_update_symbol(
+                status,
+                stmt_id,
+                defined_symbol,
+                data_type=util.read_stmt_field(stmt.data_type),
+            )
+            return P2ResultFlag()
         type_index = status.used_symbols[0]
         type_states = self.read_used_states(type_index, in_states)
         args = self.prepare_args(stmt_id, stmt, status, in_states)
