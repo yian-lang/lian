@@ -134,6 +134,21 @@ class TestCParserArrayDataType(unittest.TestCase):
             msg=f"new_struct statements: {struct_news}",
         )
 
+    def test_anonymous_struct_array_initializer_keeps_element_type(self):
+        statements = self.parse_c_gir(
+            'static struct { const char *s; int c; } keys[] = {{"x", 1}, {0, 0}};\n'
+        )
+
+        struct_news = [stmt["new_struct"] for stmt in statements if "new_struct" in stmt]
+        empty_type_structs = [stmt for stmt in struct_news if not stmt.get("data_type")]
+
+        self.assertEqual(empty_type_structs, [])
+        self.assertGreaterEqual(len(struct_news), 2)
+        self.assertTrue(
+            all(stmt.get("data_type", "").startswith("%vv") for stmt in struct_news),
+            msg=f"new_struct statements: {struct_news}",
+        )
+
 
 class TestCP2AddrOf(unittest.TestCase):
     def test_addr_of_parameter_does_not_crash_in_p2(self):
@@ -172,6 +187,48 @@ class TestCP2AddrOf(unittest.TestCase):
                     "-q",
                 ],
                 cwd=Path(__file__).resolve().parents[2],
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=60,
+            )
+
+            self.assertEqual(
+                result.returncode,
+                0,
+                msg=f"stdout:\n{result.stdout}\n\nstderr:\n{result.stderr}",
+            )
+
+    def test_yank_anonymous_struct_array_does_not_crash_in_p2(self):
+        with tempfile.TemporaryDirectory(prefix="lian_c_p2_yank_") as tmp_dir:
+            workspace_dir = Path(tmp_dir) / "workspace"
+            repo_root = Path(__file__).resolve().parents[2]
+
+            env = os.environ.copy()
+            src_path = str(repo_root / "src")
+            env["PYTHONPATH"] = (
+                src_path
+                if not env.get("PYTHONPATH")
+                else src_path + os.pathsep + env["PYTHONPATH"]
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "lian.main",
+                    "run",
+                    str(repo_root / "tests" / "wy_bug" / "yank.c"),
+                    "-l",
+                    "c",
+                    "-w",
+                    str(workspace_dir),
+                    "-f",
+                    "--enable-p2",
+                    "-q",
+                ],
+                cwd=repo_root,
                 env=env,
                 text=True,
                 stdout=subprocess.PIPE,
