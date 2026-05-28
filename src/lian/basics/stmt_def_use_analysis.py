@@ -1250,6 +1250,12 @@ class StmtDefUseAnalysis:
         )
 
     def new_struct_def_use(self, stmt_id, stmt):
+        used_symbol_list = []
+        if not util.isna(stmt.data_type):
+            used_symbol_list.append(
+                self.create_symbol_or_state_and_add_space(stmt_id, stmt.data_type)
+            )
+
         defined_symbol = self.create_symbol_or_state_and_add_space(stmt_id, stmt.target, stmt.data_type)
         self.add_status_with_symbol_id_sync(
             stmt_id, 
@@ -1258,6 +1264,7 @@ class StmtDefUseAnalysis:
                 stmt_id,
                 defined_symbol = defined_symbol,
                 # default_data_type = stmt.data_type
+                used_symbols = used_symbol_list,
             )
         )
 

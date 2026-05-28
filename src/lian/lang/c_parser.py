@@ -829,6 +829,14 @@ class Parser(common_parser.Parser):
                                     "index" : str(index)}})
             index = index + 1
 
+    def strip_outer_array_dimension(self, data_type):
+        if not data_type:
+            return ""
+        match = re.match(r"^(.*?)(\[[^\[\]]*\])(.*)$", data_type)
+        if not match:
+            return data_type
+        return f"{match.group(1)}{match.group(3)}"
+
     def initializer_list(self, node, statements, array_list):
         tmp_var = self.tmp_variable()
         array_context = list(array_list)
@@ -840,6 +848,9 @@ class Parser(common_parser.Parser):
         if len(array_context) != 0 and array_context[0] == "array":
             self.append_stmts(statements,  node, {"new_array" : { "data_type" : data_type, "target": tmp_var}})
             child_array_context = array_context[1:]
+            child_data_type = self.strip_outer_array_dimension(data_type)
+            if child_data_type:
+                child_array_context = [*child_array_context, child_data_type]
             is_array = True
         else:
             self.append_stmts(statements,  node, {"new_struct": { "data_type" : data_type, "target":tmp_var}})
