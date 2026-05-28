@@ -8,6 +8,8 @@ from lian.config.constants import LIAN_INTERNAL
 
 class Parser(common_parser.Parser):
     def init(self):
+        self.struct_fields_by_type = {}
+
         self.CONSTANTS_MAP = {
             "null"                          : LIAN_INTERNAL.NULL,
             "true"                          : LIAN_INTERNAL.TRUE,
@@ -742,9 +744,18 @@ class Parser(common_parser.Parser):
         body = self.find_child_by_field(node, "body")
         if body:
             self.struct_body(body, gir_node)
+            self.struct_fields_by_type[shadow_name] = self.get_struct_field_names(gir_node)
             self.append_stmts(statements,  node, {f"{self.STRUCT_TYPE_MAP[node.type]}_decl": gir_node})
 
         return gir_node["name"]
+
+    def get_struct_field_names(self, gir_node):
+        field_names = []
+        for field in gir_node.get("fields", []):
+            variable_decl = field.get("variable_decl", None)
+            if variable_decl and "name" in variable_decl:
+                field_names.append(variable_decl["name"])
+        return field_names
 
     # 用于处理结构体或联合体的body部分
     def struct_body(self, node, gir_node):
@@ -891,9 +902,13 @@ class Parser(common_parser.Parser):
                                             "source" : value,
                                             "index" : str(index)}})
                     else:
+                        field = str(index)
+                        field_names = self.struct_fields_by_type.get(data_type, [])
+                        if index < len(field_names):
+                            field = field_names[index]
                         self.append_stmts(statements,  node, {"field_write" :
                                            {"receiver_object" : tmp_var,
-                                            "field" : str(index),
+                                            "field" : field,
                                             "source" : value}})
                     index = index + 1
 
@@ -930,6 +945,8 @@ class Parser(common_parser.Parser):
                 current_declarator = child_declarator
 
             target = self.read_node_text(current_declarator)
+            if target_type in self.struct_fields_by_type:
+                self.struct_fields_by_type[target] = self.struct_fields_by_type[target_type]
             self.append_stmts(statements,  node, {"type_alias_decl" : {"name" : target, "data_type" : target_type}})
 
     def find_first_node_by_type(self, node, target_type):
