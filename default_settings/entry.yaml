@@ -29842,3 +29842,27 @@
   method_list: ['handle_chat_completions']
   unit_name: "toy_proxy_server.py"
 
+# CVE-2023-46604
+- lang: java
+  unit_name: "BaseDataStreamMarshaller.java"
+  method_list: ["tightUnmarsalThrowable"]
+
+# CVE-2024-42323
+- lang: java
+  unit_name: "AppController.java"
+  method_list: ["newAppDefineYml"]
+
+# CVE-2025-0851
+- lang: java
+  unit_name: "ZipUtils.java"
+  method_list: ["unzip"]
+
+# CVE-2025-14518
+- lang: java
+  unit_name: "ServerController.java"
+  method_list: ["checkConnectivity"]
+
+# CVE-2025-24813
+- lang: java
+  unit_name: "DefaultServlet.java"
+  method_list: ["doPut"]

@@ -55,3 +55,69 @@
 
 # field_read field_read call call
 # @kit.LocationKit.geoLocationManager.on.arg2.param0
+
+# CVE-2023-46604
+- lang: java
+  rules:
+    - operation: assign_stmt
+    - operation: call_stmt
+      name: createThrowable
+    - operation: object_call
+      name: Class.forName
+    - operation: object_call
+      name: getConstructor
+    - operation: array_write
+
+# CVE-2024-42323
+- lang: java
+  rules:
+    - operation: object_call
+      name: applyMonitorDefineYml
+    - operation: object_call
+      name: yaml.loadAs
+
+# CVE-2025-0851
+- lang: java
+  rules:
+    - operation: object_call
+      name: entry.getName
+    - operation: call_stmt
+      name: removeLeadingFileSeparator
+    - operation: object_call
+      name: dest.resolve
+    - operation: object_call
+      name: toAbsolutePath
+    - operation: object_call
+      name: Files.copy
+
+# CVE-2025-14518
+- lang: java
+  rules:
+    - operation: object_call
+      name: PingPongUtils.checkConnectivity
+    - operation: new_object
+      name: Socket
+
+# CVE-2025-24813
+- lang: java
+  rules:
+    - operation: call_stmt
+      name: getRelativePath
+    - operation: object_call
+      name: request.getPathInfo
+    - operation: object_call
+      name: request.getServletPath
+    - operation: object_call
+      name: result.append
+    - operation: object_call
+      name: result.toString
+    - operation: call_stmt
+      name: executePartialPut
+    - operation: object_call
+      name: path.replace
+    - operation: new_object
+      name: File
+    - operation: new_object
+      name: FileInputStream
+    - operation: object_call
+      name: resources.write

@@ -440,3 +440,66 @@
       name: user_input
       line_num: 59
       unit_name: rag_plugin.py
+
+# CVE-2023-46604
+- lang: java
+  rules:
+    - operation: call_stmt
+      name: tightUnmarshalString
+      line_num: 190
+      unit_name: BaseDataStreamMarshaller.java
+      tag: ["%target"]
+    - operation: call_stmt
+      name: tightUnmarshalString
+      line_num: 191
+      unit_name: BaseDataStreamMarshaller.java
+      tag: ["%target"]
+
+# CVE-2024-42323
+- lang: java
+  rules:
+    - operation: object_call
+      name: defineDto.getDefine
+      line_num: 109
+      unit_name: AppController.java
+      tag: ["%target"]
+
+# CVE-2025-0851
+- lang: java
+  rules:
+    - operation: object_call
+      name: entry.getName
+      line_num: 55
+      unit_name: ZipUtils.java
+      tag: ["%target"]
+
+# CVE-2025-14518
+- lang: java
+  rules:
+    - operation: parameter_decl
+      name: targetIp
+      line_num: 70
+      unit_name: ServerController.java
+    - operation: parameter_decl
+      name: targetPort
+      line_num: 70
+      unit_name: ServerController.java
+
+# CVE-2025-24813
+- lang: java
+  rules:
+    - operation: call_stmt
+      name: getRelativePath
+      line_num: 602
+      unit_name: DefaultServlet.java
+      tag: ["%target"]
+    - operation: object_call
+      name: request.getPathInfo
+      line_num: 474
+      unit_name: DefaultServlet.java
+      tag: ["%target"]
+    - operation: object_call
+      name: request.getServletPath
+      line_num: 475
+      unit_name: DefaultServlet.java
+      tag: ["%target"]

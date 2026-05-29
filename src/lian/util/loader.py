@@ -5,6 +5,7 @@ import math
 import os
 import ast
 import re
+import types
 
 import networkx as nx
 import pprint
@@ -1936,15 +1937,63 @@ class SymbolGraphLoader(MethodLevelAnalysisResultLoader):
         return edges
 
 class StateFlowGraphLoader(MethodLevelAnalysisResultLoader):
+    def _json_default(self, item):
+        if hasattr(item, "to_dict"):
+            return item.to_dict()
+        if hasattr(item, "to_dict_str"):
+            return item.to_dict_str()
+        if isinstance(item, (set, tuple)):
+            return list(item)
+        if isinstance(item, numpy.integer):
+            return int(item)
+        if isinstance(item, numpy.floating):
+            return float(item)
+        return str(item)
+
+    def _serialize_node(self, node: SFGNode):
+        return json.dumps(node.to_tuple(), default=self._json_default)
+
+    def _deserialize_access_path(self, access_path):
+        if not isinstance(access_path, list):
+            return access_path
+        result = []
+        for item in access_path:
+            if isinstance(item, dict):
+                result.append(types.SimpleNamespace(**item))
+            else:
+                result.append(item)
+        return result
+
+    def _deserialize_stmt(self, stmt):
+        if isinstance(stmt, dict):
+            return types.SimpleNamespace(**stmt)
+        return stmt
+
+    def _deserialize_node(self, raw_node):
+        if isinstance(raw_node, str):
+            raw_node = json.loads(raw_node)
+        node = SFGNode().from_tuple(tuple(raw_node))
+        node.stmt = self._deserialize_stmt(node.stmt)
+        node.access_path = self._deserialize_access_path(node.access_path)
+        return node
+
+    def _serialize_edge(self, edge: SFGEdge):
+        return json.dumps(edge.to_tuple(), default=self._json_default)
+
+    def _deserialize_edge(self, raw_edge):
+        if isinstance(raw_edge, str):
+            raw_edge = json.loads(raw_edge)
+        return SFGEdge().from_tuple(tuple(raw_edge))
+
     def unflatten_item_dataframe_when_loading(self, method_id, item_df):
         symbol_graph = StateFlowGraph(method_id)
         for row in item_df:
             if not row or not row.source_node or not row.dest_node:
                 continue
             symbol_graph.add_edge(
-                SFGNode().from_tuple(row.source_node),
-                SFGNode().from_tuple(row.dest_node),
-                SFGEdge().from_tuple(row.edge)
+                self._deserialize_node(row.source_node),
+                self._deserialize_node(row.dest_node),
+                self._deserialize_edge(row.edge)
             )
         return symbol_graph.graph
 
@@ -1954,9 +2003,9 @@ class StateFlowGraphLoader(MethodLevelAnalysisResultLoader):
         for src_node, dst_node, edge in all_edges:
             edges.append({
                 "method_id": method_id,
-                "source_node": src_node.to_tuple(),
-                "edge": edge.to_tuple(),
-                "dest_node": dst_node.to_tuple(),
+                "source_node": self._serialize_node(src_node),
+                "edge": self._serialize_edge(edge),
+                "dest_node": self._serialize_node(dst_node),
             })
         return edges
 
@@ -3535,4 +3584,3 @@ class Loader:
                     sink_stmt_ids.add(stmt.stmt_id)
 
         return source_stmt_ids, sink_stmt_ids
-

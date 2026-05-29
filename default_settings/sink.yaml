@@ -630,3 +630,53 @@
       line_num: 993
       unit_name: "query.py"
       target: [\%arg0]
+
+# CVE-2023-46604
+- lang: java
+  rules:
+    - operation: object_call
+      name: constructor.newInstance
+      line_num: 231
+      unit_name: BaseDataStreamMarshaller.java
+      target: [\%arg0]
+      vuln_type: unsafe_reflection_deserialization
+
+# CVE-2024-42323
+- lang: java
+  rules:
+    - operation: object_call
+      name: yaml.loadAs
+      line_num: 287
+      unit_name: AppServiceImpl.java
+      target: [\%arg0]
+      vuln_type: unsafe_yaml_deserialization
+
+# CVE-2025-0851
+- lang: java
+  rules:
+    - operation: object_call
+      name: Files.copy
+      line_num: 69
+      unit_name: ZipUtils.java
+      target: [\%arg1]
+      vuln_type: zip_slip
+
+# CVE-2025-14518
+- lang: java
+  rules:
+    - operation: new_object
+      name: Socket
+      line_num: 31
+      unit_name: PingPongUtils.java
+      target: [\%arg0, \%arg1]
+      vuln_type: ssrf
+
+# CVE-2025-24813
+- lang: java
+  rules:
+    - operation: object_call
+      name: resources.write
+      line_num: 627
+      unit_name: DefaultServlet.java
+      target: [\%arg0]
+      vuln_type: arbitrary_file_write

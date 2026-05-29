@@ -344,7 +344,7 @@ class TaintRuleApplier:
         unit_info = self.loader.convert_module_id_to_module_info(unit_id)
         unit_path = unit_info.original_path
         unit_name = os.path.basename(unit_path)
-        method_symbol_node, method_state_nodes = self.taint_analysis.get_stmt_used_symbol_and_state_by_pos(node)
+        method_symbol_node, method_state_nodes = self.taint_analysis.get_stmt_used_symbol_and_state_by_pos(node, pos=0)
         defined_symbol_node, defined_state_nodes = self.taint_analysis.get_stmt_define_symbol_and_states_node(node)
         if not method_symbol_node or not defined_symbol_node:
             return False
@@ -434,6 +434,30 @@ class TaintRuleApplier:
             if rule.line_num and rule.line_num != int(node.line_no + 1):
                 continue
             if rule.name in names:
+                return True
+        return False
+
+    def should_apply_new_object_sink_rules(self, node):
+        if node.node_type != SFG_NODE_KIND.STMT or node.name != "new_object":
+            return False
+        stmt = node.stmt
+        stmt_id = node.def_stmt_id
+        unit_id = self.loader.convert_stmt_id_to_unit_id(stmt_id)
+        unit_info = self.loader.convert_module_id_to_module_info(unit_id)
+        unit_path = unit_info.original_path
+        unit_name = os.path.basename(unit_path)
+        data_type = util.read_stmt_field(stmt.data_type)
+
+        for rule in self.rule_manager.all_sinks:
+            if rule.operation != "new_object":
+                continue
+            if rule.unit_path and rule.unit_path != unit_path:
+                continue
+            if rule.unit_name and rule.unit_name != unit_name:
+                continue
+            if rule.line_num and rule.line_num != int(node.line_no + 1):
+                continue
+            if rule.name == data_type:
                 return True
         return False
 
@@ -614,6 +638,13 @@ class TaintRuleApplier:
             for rule in self.rule_manager.all_sinks:
                 if rule.name in [name, name1, stmt.field]:
                     matching_rules.append(rule)
+        elif operation == "new_object":
+            data_type = util.read_stmt_field(stmt.data_type)
+            for rule in self.rule_manager.all_sinks:
+                if rule.operation != "new_object":
+                    continue
+                if rule.name == data_type:
+                    matching_rules.append(rule)
         elif operation == "field_write":
             used_symbol_nodes, used_state_nodes = self.taint_analysis.get_stmt_used_symbol_and_state_by_pos(node)
             for rule in self.rule_manager.all_sinks:
@@ -791,6 +822,8 @@ class TaintAnalysis:
         for node in self.sfg.nodes:
             if self.rule_applier.should_apply_call_stmt_sink_rules(
                 node) or self.rule_applier.should_apply_object_call_stmt_sink_rules(node):
+                node_list.append(node)
+            elif self.rule_applier.should_apply_new_object_sink_rules(node):
                 node_list.append(node)
             elif self.rule_applier.apply_record_write_sink_rules(node):
                 node_list.append(node)
