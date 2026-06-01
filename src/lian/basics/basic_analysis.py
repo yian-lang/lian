@@ -81,6 +81,19 @@ class P1BasicSemanticAnalysis:
         }
         self.loader.save_method_id_to_method_decl_format(method_id, method_format)
 
+    def add_condition_prebody_stmt_ids(self, frame, stmt_ids):
+        for stmt_id in frame.unit_gir.get_all_stmt_ids():
+            stmt = frame.unit_gir.get_stmt_by_id(stmt_id)
+            condition_prebody_id = getattr(stmt, "condition_prebody", None)
+            if util.is_empty(condition_prebody_id):
+                continue
+
+            condition_prebody = frame.unit_gir.read_block(condition_prebody_id)
+            if util.is_empty(condition_prebody):
+                continue
+
+            stmt_ids.update(condition_prebody.get_all_stmt_ids())
+
     @profile
     def analyze_method(self, method_id, import_analysis, external_symbol_id_collection, unit_is_analyzed = False):
         frame = ComputeFrame(method_id = method_id, loader = self.loader)
@@ -101,6 +114,7 @@ class P1BasicSemanticAnalysis:
         else:
             cfg = ControlFlowAnalysis(self.loader, method_id, parameter_decl_block, method_body_block).analyze()
         all_cfg_nodes = set(cfg.nodes())
+        self.add_condition_prebody_stmt_ids(frame, all_cfg_nodes)
 
         # Perform def-use analysis; This is flow-insensitive
         frame.stmt_def_use_analysis = StmtDefUseAnalysis(
