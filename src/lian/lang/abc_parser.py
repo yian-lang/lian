@@ -307,12 +307,12 @@ class Parser(common_parser.Parser):
         type_node = self.find_child_by_field(node, "type")
         param_type = self.type_expression(type_node)
 
-        return {
+        return self.add_col_row_info(node, {
             "parameter_decl": {
                 "data_type": param_type,
                 "name": param_name,
             }
-        }
+        })
 
     def type_expression(self, node):
         if node.type == "primitive_type":

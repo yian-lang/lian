@@ -19,7 +19,7 @@ DEFAULT_WORKSPACE = "/tmp/lian_workspace"
 
 # 支持的语言列表
 SUPPORTED_LANGUAGES = [
-    "python", "java", "javascript", "typescript", "php", "c", "go", "llvm", "csharp (dev)", "ruby (dev)", "smali (dev)",
+    "abc", "python", "java", "javascript", "typescript", "php", "c", "go", "llvm", "csharp (dev)", "ruby (dev)", "smali (dev)",
 ]
 
 # 分析类型选项
