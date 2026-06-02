@@ -333,7 +333,7 @@ class TaintRuleApplier:
             for state_node in state_nodes:
                 # 格式化访问路径
                 access_path = access_path_formatter(state_node.access_path)
-                if access_path == rule.name:
+                if access_path in [rule.name, rule.target]:
                     return True
 
         return False
@@ -616,7 +616,7 @@ class TaintRuleApplier:
         # 1. 寻找匹配的 sink 规则
         matching_rules = []
         if operation == "call_stmt":
-            _, method_state_nodes = self.taint_analysis.get_stmt_used_symbol_and_state_by_pos(node)
+            _, method_state_nodes = self.taint_analysis.get_stmt_used_symbol_and_state_by_pos(node, pos=0)
             for rule in self.rule_manager.all_sinks:
                 if rule.operation != "call_stmt":
                     continue
@@ -665,7 +665,9 @@ class TaintRuleApplier:
             targets = rule.target if isinstance(rule.target, list) else [rule.target]
             vuln_type = rule.vuln_type
             for target in targets:
-                # target_pos = -1
+                if isinstance(target, str):
+                    target = target.strip()
+                target_pos = -1
                 if target == TAG_KEYWORD.ARG0:
                     target_pos = 1
                 elif target == TAG_KEYWORD.ARG1:
