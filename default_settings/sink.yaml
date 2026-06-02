@@ -680,3 +680,107 @@
       unit_name: DefaultServlet.java
       target: [\%arg0]
       vuln_type: arbitrary_file_write
+
+
+- lang: typescript
+  rules:
+    - operation: call_stmt
+      name: \%anyname.startAbilityForResult
+      target: [\%arg0]
+    - operation: call_stmt
+      name: \%anyname.startAbility
+      target: [\%arg0]
+    - operation: call_stmt
+      name: hilog.info
+      target: [\%arg3]
+    - operation: call_stmt
+      name: hilog.info
+      target: [\%arg2]
+    - operation: call_stmt
+      name: console.log
+      target: [\%arg0]
+
+- lang: abc
+  rules:
+    # - operation: call_stmt
+    #   name: android.telephony.TelephonyManager.getImei.
+    #   tag:
+    #     - [\%return,\%arg0,\%arg1]
+
+    # - operation: field_read
+    #   receiver: a.b.c
+    #   tag:  [\%receiver, \%target]
+    # - operation: call_stmt
+    #   name: http.request
+    #   tag: [\%arg2=>\%args0]
+    # - operation: field_read
+    #   receiver : \@ohos:deviceInfo
+    #   tag: [\%field]
+    # - operation: field_read
+    #   name: \@ohos:getLocationManager
+    #   tag: [\%target]
+    # - operation: call_stmt
+    #   name: getPhoneNumbed
+    #   args: [\%arg0]
+    #   tag: [\%return]
+    - operation: call_stmt
+      name: \%anyname.startAbilityForResult
+      target: [\%arg0]
+
+    - operation: call_stmt
+      name: sink
+      target: [\%arg0]
+
+    - operation: call_stmt
+      name: network_send
+      target: [\%arg0]
+
+    - operation: call_stmt
+      name: console.info
+      target: [\%arg0]
+    - operation: call_stmt
+      name: console.log
+      target: [\%arg0]
+    - operation: call_stmt
+      name: \%anyname.log
+      target: [\%arg0]
+    - operation: call_stmt
+      name: logger.info
+      target: [\%arg0]
+    - operation: call_stmt
+      name: Logger.info
+      target: [\%arg1]
+    - operation: call_stmt
+      name: Log.info
+      target: [\%arg0]
+    - operation: call_stmt
+      name: hilog.default.info
+      target: [\%arg3]
+    - operation: call_stmt
+      name: hilog.default.info
+      target: [ \%arg2 ]
+    - operation: call_stmt
+      name: network.Index.https.bindPhone
+      target: [\%arg0]
+    - operation: call_stmt
+      name: utils.Index.Logger.info
+      target: [\%arg0]
+    - operation: call_stmt
+      name: https.bindPhone
+      target: [\%arg0]
+    - operation: call_stmt
+      name: \%anyname.post
+      target: [\%arg0, \%arg1]
+    - operation: call_stmt
+      name: \%anyname.info
+      target: [\%arg1]
+    - operation: call_stmt
+      name: advertising.default.AdLoader.v8.loadAd
+      target: [\%arg0]
+    - operation: call_stmt
+      name: \%anyname.acquireServerInfo
+      target: [\%arg0]
+
+    - operation: call_stmt
+      name: \%anyname.exceptionReport
+      target: [\%arg0]

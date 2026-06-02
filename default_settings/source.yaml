@@ -503,3 +503,97 @@
       line_num: 475
       unit_name: DefaultServlet.java
       tag: ["%target"]
+- lang: typescript
+  rules:
+    # - operation: call_stmt
+    #   name: android.telephony.TelephonyManager.getImei.
+    #   tag:
+    #     - [\%return,\%arg0,\%arg1]
+
+    # - operation: field_read
+    #   receiver: a
+    #   tag:  [\%receiver, \%target]
+    - operation: field_read
+      name: deviceInfo.brand
+      tag: [\%target]
+    - operation: parameter_decl
+      name: bundleVersion
+      unit_path: tests/arkts/benchmark/icc/icc4/ets/entrybackupability/EntryBackupAbility.ts
+      tag: [\%target]
+- lang: abc
+  rules:
+    # - operation: call_stmt
+    #   name: android.telephony.TelephonyManager.getImei.
+    #   tag:
+    #     - [\%return,\%arg0,\%arg1]
+
+    # - operation: field_read
+    #   receiver: a
+    #   tag:  [\%receiver, \%target]
+    - operation: call_stmt
+      name: Source
+      tag: [\%target]
+    - operation: field_read
+      target: deviceInfo.default.deviceType
+      tag: [\%target]
+    - operation: field_read
+      target: router.default.getParams
+      tag: [\%target]
+    - operation: field_read
+      name: deviceInfo.default.brand
+      tag: [\%target]
+    - operation: field_read
+      target: deviceInfo.default.productModel
+      tag: [\%target]
+
+    - operation: field_read
+      target: acc.getCalendar
+      tag: [\%target]
+    - operation: field_read
+      target: calendarMgr.getCalendar
+      tag: [ \%target ]
+
+    - operation: field_read
+      target: com.huawei.hmos.health.kit.HealthStore.ets.Index.default.healthSequenceHelper.sleepRecord.DATA_TYPE
+      tag: [\%target]
+
+
+    - operation: call_stmt
+      name: getPhoneNumber
+      # args: [\%arg0]
+      tag: [\%target]
+    - operation: field_read
+      target: utils.Index.getCurrentLocationWithPermissions
+      # args: [\%arg0]
+      tag: [\%target]
+
+    - operation: field_read
+      target: identifier.oaid.default.getOAID
+      tag: [\%target]
+
+    - operation: field_read
+      target: acc.onGetPhoneNumber
+      tag: [\%target]
+
+
+
+    - operation: field_read
+      target: "%this.netCon.on.connectionProperties"
+      tag: [\%target]
+    - operation: field_read
+      target: PostSignature.getDeviceInfo
+      tag: [\%target]
+    - operation: field_read
+      target: os.TextInput.onChange
+      tag: [\%target]
+    - operation: field_read
+      target: telephony.observer.default.on
+      tag: [\%target]
+    - operation: field_read
+      target: geoLocationManager.default.getLastLocation
+      tag: [\%target]
+    - operation: field_read
+      target: geoLocationManager.default.getAddressesFromLocation
+      tag: [\%target]
+  # field_read field_read call call
+  # @kit.LocationKit.geoLocationManager.on.arg2.param0
