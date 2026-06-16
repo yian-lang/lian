@@ -2,6 +2,10 @@
 
 **Lian** is a next-generation, high-precision program analysis framework designed for multi-language environments. It aims to deliver unified and powerful program analysis capabilities across diverse programming languages, including pointer analysis, dataflow analysis, and taint analysis.
 
+## News
+
+* The work behind Lian has been accepted by ISSTA 2026.
+
 ## Background
 
 Program analysis is a foundational technology in system security. The prior program analysis tools designed for mainstream statically typed languages (such as C/C++ and Java) are already highly mature and robust. However, in today's diverse programming language ecosystem, high-precision program analysis capabilities remain severely lacking, significantly hindering the analysis and enhancement of software security and reliability.
@@ -30,7 +34,7 @@ Despite vast syntactic differences across languages, program behaviors at the ex
 ## Key Features
 
 * **Source-code input**: Analyzing source code directly. No compiler is required.  
-* **Multi-language support**: Supporting both static and dynamic languages, including Python, JavaScript, Java, TypeScript, and Go.  
+* **Multi-language support**: Supporting both static and dynamic languages, including Python, JavaScript, Java, TypeScript, Go, and ABC bytecode.  
 * **Pointer-level precision**: Implementing flow-sensitive and context-sensitive pointer analysis.  
 * **Dynamic semantics modeling**: Accurately handling prototype chains, higher-order functions, and dynamic property resolution.  
 * **Security-oriented**: Providing a powerful taint analysis engine, enabling rapid development of vulnerability discovery tools.
@@ -73,6 +77,12 @@ $ ./scripts/lian-ui.sh
 
 ```shell
 $ ./scripts/lian.sh -l <language> <path_to_code>
+```
+
+For ABC bytecode files, use:
+
+```shell
+$ ./scripts/lian.sh -l abc <path_to_abc_bytecode.txt>
 ```
 
 ## Documentation and Support
