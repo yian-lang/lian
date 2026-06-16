@@ -545,6 +545,11 @@
     - operation: field_read
       target: deviceInfo.default.productModel
       tag: [\%target]
+    - operation: call_stmt
+      name: os.AppStorage.Get
+      unit_name: abc.txt
+      line_num: 5056
+      tag: [\%target]
 
     - operation: field_read
       target: acc.getCalendar
@@ -552,6 +557,10 @@
     - operation: field_read
       target: calendarMgr.getCalendar
       tag: [ \%target ]
+    - operation: parameter_decl
+      name: a4
+      unit_name: all_abc.txt
+      line_num: 51696
 
     - operation: field_read
       target: com.huawei.hmos.health.kit.HealthStore.ets.Index.default.healthSequenceHelper.sleepRecord.DATA_TYPE

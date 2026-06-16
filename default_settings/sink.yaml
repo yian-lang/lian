@@ -749,7 +749,7 @@
       target: [\%arg0]
     - operation: call_stmt
       name: Logger.info
-      target: [\%arg1]
+      target: [\%arg0]
     - operation: call_stmt
       name: Log.info
       target: [\%arg0]

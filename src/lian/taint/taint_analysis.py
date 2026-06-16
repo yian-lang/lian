@@ -24,6 +24,26 @@ from lian.taint.taint_structs import (
 from pyarrow.lib import ArrowInvalid
 import traceback
 
+def _access_path_matches_method_name(rule_name, state_access_path):
+    if not rule_name or not state_access_path:
+        return False
+
+    access_path = ".".join(
+        str(item.key) for item in state_access_path
+        if getattr(item, "key", "") != ""
+    )
+    if not access_path:
+        return False
+
+    rule_name = str(rule_name)
+    if TAG_KEYWORD.ANYNAME in rule_name:
+        suffix = rule_name.replace(TAG_KEYWORD.ANYNAME, "").lstrip(".")
+        if not suffix:
+            return True
+        return access_path == suffix or access_path.endswith("." + suffix)
+
+    return access_path == rule_name or access_path.endswith("." + rule_name)
+
 class PathFinder:
     """
     负责污点传播与路径重建的辅助类。
@@ -549,17 +569,7 @@ class TaintRuleApplier:
         return False
 
     def check_method_name(self, rule_name, method_state):
-        state_access_path = method_state.access_path
-        rule_name_parts = rule_name.split('.')
-        if len(state_access_path) < len(rule_name_parts):
-            return False
-        # name匹配上
-        for i, item in enumerate(reversed(rule_name_parts)):
-            if item == TAG_KEYWORD.ANYNAME:
-                continue
-            if item != state_access_path[-i - 1].key:
-                return False
-        return True
+        return _access_path_matches_method_name(rule_name, method_state.access_path)
 
     def apply_propagation_rules(self, node):
         stmt_id = node.def_stmt_id
@@ -750,11 +760,13 @@ class TaintAnalysis:
             edge = self.sfg.get_edge_data(predecessor, node)
 
             if edge and edge['weight'].pos == pos:
-                name_symbol_node = predecessor
-        name_symbol_successors = list(util.graph_successors(self.sfg, name_symbol_node))
-        for successor in name_symbol_successors:
-            if successor.node_type == SFG_NODE_KIND.STATE:
-                state_nodes.append(successor)
+                if name_symbol_node is None:
+                    name_symbol_node = predecessor
+                for successor in util.graph_successors(self.sfg, predecessor):
+                    if successor.node_type == SFG_NODE_KIND.STATE:
+                        state_nodes.append(successor)
+        if name_symbol_node is None:
+            return None, None
         return name_symbol_node, state_nodes
 
     def get_stmt_define_symbol_and_states_node(self, node):
@@ -838,22 +850,7 @@ class TaintAnalysis:
         return node_list
 
     def check_method_name(self, rule_name, method_state):
-        apply_flag = True
-
-        state_access_path = method_state.access_path
-
-        rule_name = rule_name.split('.')
-        if len(state_access_path) < len(rule_name):
-            return False
-        # name匹配上
-        for i, item in enumerate(reversed(rule_name)):
-            if item == TAG_KEYWORD.ANYNAME:
-                continue
-            if item != state_access_path[-i - 1].key:
-                apply_flag = False
-                break
-
-        return apply_flag
+        return _access_path_matches_method_name(rule_name, method_state.access_path)
 
     def get_state_with_inclusion_tag(self, state_node):
         """获取 state 节点及其所有通过 inclusion 关系包含的子 state 节点的污点标记总和"""

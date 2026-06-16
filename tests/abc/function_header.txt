@@ -1,3 +1,0 @@
-.function any &entry.src.main.ets.pages.Index&.updateStateVars(any a0, any a1, any a2, any a3) <static> {
-	definefunc 0x2, &entry.src.main.ets.pages.Index&.#11045136256518667928#:(any,any,any,any,any), 0x2
-}

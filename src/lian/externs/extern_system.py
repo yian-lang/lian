@@ -16,7 +16,7 @@ from lian.config.constants import (
     ACCESS_POINT_KIND
 )
 from lian.externs.extern_rule import Rule
-from lian.externs.modeling import js_api
+from lian.externs.modeling import abc_call, js_api
 from lian.common_structs import AccessPoint, InterruptionData, State, Symbol
 from lian.util import util
 
@@ -387,7 +387,10 @@ class ExternSystem:
 
             all_modelings["llvm"] = []
 
-            all_modelings["abc"] = []
+            all_modelings["abc"] = [
+                Rule(method_name=method_name, model_method=model_method)
+                for method_name, model_method in abc_call.METHOD_NAME_TO_MODEL.items()
+            ]
 
             all_modelings["php"] = []
 
@@ -408,4 +411,3 @@ class ExternSystem:
                 results.append(each_rule)
 
         return results
-

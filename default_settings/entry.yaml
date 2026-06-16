@@ -4,7 +4,7 @@
 #  method_list: ["channelRead0"]
 
 - lang: abc
-  method_list: ["aboutToappear", "Index", "SunsPage", "SelectLocation", "RegisterPage", "LoadAd", "InitialRender", "init", "send", "Paramslambda", "requestOAIDTrackingConsentPermissions", "aboutToappear", "onChangeCallback", "onPageshow", "func_main_0", "onWindowStageCreate","onCreate", "deepRenderFunction"]
+  method_list: ["aboutToappear", "aboutToAppear", "Index", "SunsPage", "SelectLocation", "RegisterPage", "LoadAd", "InitialRender", "init", "send", "Paramslambda", "requestOAIDTrackingConsentPermissions", "aboutToappear", "onChangeCallback", "onPageshow", "func_main_0", "onWindowStageCreate","onCreate", "deepRenderFunction"]
 
 # - lang: python
 #   method_list: ["from_pretrained", "a", "file", "view_image", "worker_api_generate_stream", "invoke", "init_device", "delete_images_from_list",

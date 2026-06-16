@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import copy
-from lian.common_structs import AccessPoint, State, ComputeFrame, Symbol
+from lian.common_structs import AccessPoint, P2ResultFlag, State, ComputeFrame, Symbol
 from lian.core.stmt_states import StmtStates
 from lian.events.handler_template import EventData
 from lian.config.constants import (
@@ -68,32 +68,34 @@ def appstorage_read_and_write(data: EventData):
     loader:Loader = frame.loader
     defined_symbol = data.in_data.defined_symbol
 
-    if len(positional_args) != 2:
+    if len(positional_args) < 1:
         return er.config_event_unprocessed()
     arg0 = list(positional_args[0])
-    # arg1 = list(positional_arg[1])
+    if len(arg0) == 0:
+        return er.config_event_unprocessed()
     arg0_state = space[arg0[0].index_in_space]
     arg0_access_path = access_path_formatter(arg0_state.access_path)
     class_members = loader.convert_class_id_to_members(1000086)
     app_return = er.config_event_unprocessed()
-    arg_index_set = set()
-    for arg in positional_args[1]:
-        arg_index_set.add(arg.index_in_space)
 
     for state_index in name_states:
         state = space[state_index]
         access_path = access_path_formatter(state.access_path)
-        # TODO: NO hard code
-        if access_path == "AppStorage.SetOrCreate(key, value)":
-            class_members[arg0_access_path] = positional_args[1]
+        if access_path.endswith("AppStorage.SetOrCreate") and len(positional_args) >= 2:
+            class_members[arg0_access_path] = {
+                arg.index_in_space for arg in positional_args[1]
+                if arg.index_in_space >= 0
+            }
             loader.save_class_id_to_members(1000086, class_members)
-            app_return = er.config_block_event_requester
+            data.out_data = P2ResultFlag()
+            app_return = er.config_block_event_requester(app_return)
             break
-        elif access_path == "AppStorage.Get":
+        elif access_path.endswith("AppStorage.Get"):
             read_members = loader.convert_class_id_to_members(1000086)
-            if read_members and read_members != set():
-                defined_symbol.states = read_members
-                app_return = er.config_block_event_requester()
+            if read_members and arg0_access_path in read_members:
+                defined_symbol.states = read_members[arg0_access_path]
+                data.out_data = P2ResultFlag()
+                app_return = er.config_block_event_requester(app_return)
             break
     return app_return
 
