@@ -607,6 +607,9 @@ class Parser(common_parser.Parser):
         modifiers = []
         self.search_for_modifiers(node, modifiers)
         func_decl = self.find_child_by_field(node, "declarator")
+        if not func_decl:
+            util.debug("错误,找不到function declarator")
+            return
         if attr_spec := self.find_child_by_type(func_decl, "attribute_specifier"):
             attr_arg_list = self.find_child_by_type(attr_spec, "argument_list")
             if attr_arg_list.named_child_count > 0:
@@ -616,21 +619,27 @@ class Parser(common_parser.Parser):
 
         # 返回值类型
         mytype = self.find_child_by_field(node, "type")
+        if not mytype:
+            util.debug("错误,找不到function return type")
+            return
         shadow_type = self.read_node_text(mytype)
 
         # 要迭代找到function_declarator节点，其内容如func(int a,int b)
         child = self.find_child_by_field(node, "declarator")
-        while child.type != "function_declarator":
+        while child is not None and child.type != "function_declarator":
             # 返回值是指针类型
             if child.type == "pointer_declarator":
                 shadow_type += "*"
                 modifiers.append(LIAN_INTERNAL.POINTER)
             child = self.find_child_by_field(child, "declarator")
-        if child.type != "function_declarator":
+        if child is None:
             util.debug("错误,找不到function_declarator")
             return
         # 函数名位于function_declarator下的declarator字段
         name = self.find_child_by_field(child, "declarator")
+        if not name:
+            util.debug("错误,找不到function name")
+            return
         shadow_name = self.read_node_text(name)
 
         all_parameters = []
