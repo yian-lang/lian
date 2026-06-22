@@ -693,6 +693,11 @@ class Parser(common_parser.Parser):
             while child_declarator := self.find_child_by_field(declarator, "declarator"):
                 # util.debug("--------------------------------declarator类型：" + declarator.type)
 
+                if child_declarator.type == "function_declarator" and not self.find_child_by_field_type(
+                    child_declarator, "declarator", "pointer_declarator"
+                ):
+                    break
+
                 # 找出嵌套情况中的modifiers
                 self.search_for_modifiers(declarator, modifiers)
 
@@ -710,16 +715,20 @@ class Parser(common_parser.Parser):
                 # 以函数指针作为形参 如int (*operation)(int, int)
                 if declarator.type == "function_declarator":
                     # 直接将函数指针原型当成type
-                    shadow_type += self.read_node_text(declarator)
-                    type_modifiers = ["pointer"]
                     # 跳掉下面的括号
                     child_declarator = self.find_child_by_field_type(
                         declarator, "declarator", "pointer_declarator")
+                    if not child_declarator:
+                        break
+                    shadow_type += self.read_node_text(declarator)
+                    type_modifiers = ["pointer"]
 
                 declarator = child_declarator
 
         # 找到最底层的declarator
-        shadow_name = self.read_node_text(declarator)
+        shadow_name = self.extract_declarator_name(declarator)
+        if not shadow_name:
+            shadow_name = self.read_node_text(declarator)
 
         # 将类型attr并入modifiers
         modifiers.extend(type_modifiers)
