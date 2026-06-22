@@ -125,11 +125,31 @@ class DataModel:
         return self
 
     def save(self, path):
+        data = self.reset_index()._data
         try:
-            self.reset_index()._data.to_feather(path)
+            data.to_feather(path)
             return self
         except Exception as e:
-            print(e)
+            try:
+                data = data.copy(deep=False)
+                for column in data.select_dtypes(include=["object"]).columns:
+                    data[column] = data[column].map(self.normalize_object_value)
+                data.to_feather(path)
+                return self
+            except Exception:
+                print(e)
+
+    def normalize_object_value(self, value):
+        if value is None:
+            return None
+
+        try:
+            if pd.isna(value):
+                return None
+        except (TypeError, ValueError):
+            pass
+
+        return str(value)
 
     def access(self, row_index, column_name = ""):
         if len(column_name) != 0:
@@ -470,4 +490,3 @@ class Column(pd.Series):
             )
 
         return target[self._column_name].get(value, set())
-
