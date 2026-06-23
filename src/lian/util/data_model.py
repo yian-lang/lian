@@ -300,6 +300,9 @@ class DataModel:
     def search_block_start_end_indics(self, block_id):
         if util.isna(block_id):
             return None
+
+        if isinstance(block_id, str) and block_id.isdigit():
+            block_id = int(block_id)
         
         indices = self.query_index_column_value_indices("stmt_id", block_id)
         

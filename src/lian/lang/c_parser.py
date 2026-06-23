@@ -1378,7 +1378,9 @@ class Parser(common_parser.Parser):
         for case in switch_body.named_children:
             # util.debug(f"nnnnnnnnnnn----case.children[0]_text is : {self.read_node_text(case.children[0])}")  # case or default
 
-            if case.type == "comment":
+            if case.type in ["comment", "preproc_function_def", "preproc_call"]:
+                continue
+            if case.type != "case_statement" or case.child_count == 0:
                 continue
             if self.read_node_text(case.children[0]) == "case":
                 label = self.find_child_by_field(case, "value")
