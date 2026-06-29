@@ -617,6 +617,25 @@ class Parser(common_parser.Parser):
                     shadow_a = self.parse(a, statements)
                     modifiers.append(shadow_a)
 
+        child = func_decl
+        while child is not None and child.type != "function_declarator":
+            child = self.find_child_by_field(child, "declarator")
+
+        # Older C grammars parse a GNU attribute between the return type and
+        # function name as a fake function declarator followed by a call.
+        if child is not None:
+            name = self.find_child_by_field(child, "declarator")
+            call = self.find_child_by_type(child, "call_expression")
+            if name is not None and self.read_node_text(name) == "__attribute__" and call is not None:
+                attribute = node.text[child.start_byte - node.start_byte:call.start_byte - node.start_byte]
+                modifiers.append(attribute.decode("utf8").strip())
+                start = child.start_byte - node.start_byte
+                end = call.start_byte - node.start_byte
+                source = node.text[:start] + b" " * (end - start) + node.text[end:]
+                row, column = node.start_point
+                tree = self.ast_parser.parse(b"\n" * row + b" " * column + source)
+                node = tree.root_node.named_children[0]
+
         # 返回值类型
         mytype = self.find_child_by_field(node, "type")
         if not mytype:
