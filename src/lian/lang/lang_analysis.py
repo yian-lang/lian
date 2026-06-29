@@ -295,6 +295,7 @@ class GIRParser:
 
         gir_statements = []
         parser = lang.parser(self.options, unit_info)
+        parser.ast_parser = ast_parser
         parser.parse_gir(tree.root_node, gir_statements)
         self.ananymous_func_to_scope = getattr(parser, "ananymous_func_to_scope", {})
         return gir_statements
