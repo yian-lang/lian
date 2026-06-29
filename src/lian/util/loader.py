@@ -3175,6 +3175,22 @@ class Loader:
     def save_method_used_symbols(self, method_id, symbols):
         return self._used_symbols_loader.save(method_id, symbols)
 
+    def get_used_stmt_ids_by_symbol(self, symbol_id):
+        method_ids = set(self.get_all_method_ids())
+        local_method_ids = {
+            method_id
+            for method_id in method_ids
+            if symbol_id in self.get_method_def_use_summary(method_id).local_symbol_ids
+        }
+
+        target_method_ids = local_method_ids if len(local_method_ids) == 1 else method_ids
+        used_stmt_ids = set()
+        for method_id in target_method_ids:
+            method_used_symbols = self.get_method_used_symbols(method_id)
+            if isinstance(method_used_symbols, dict):
+                used_stmt_ids.update(method_used_symbols.get(symbol_id, set()))
+        return used_stmt_ids
+
     def get_method_symbol_graph_p2(self, method_id):
         return self._symbol_graph_p2_loader.get_item_by_id(method_id)
     def save_method_symbol_graph_p2(self, method_id, graph):
