@@ -2019,6 +2019,7 @@ class Loader:
         self.semantic_p1_path = os.path.join(options.workspace, config.SEMANTIC_P1_DIR)
         self.semantic_p2_path = os.path.join(options.workspace, config.SEMANTIC_P2_DIR)
         self.semantic_p3_path = os.path.join(options.workspace, config.SEMANTIC_P3_DIR)
+        self._struct_field_access_cache = None
 
         self.stmt_gir_cache = util.LRUCache(capacity = config.MAX_STMT_CACHE_CAPACITY)
 
@@ -2917,11 +2918,13 @@ class Loader:
         return self._stmt_status_p1_loader.get_item_by_id(method_id)
 
     def save_stmt_status_p2(self, method_id, status):
+        self._invalidate_struct_field_access_cache()
         return self._stmt_status_p2_loader.save(method_id, status)
     def get_stmt_status_p2(self, method_id):
         return self._stmt_status_p2_loader.get_item_by_id(method_id)
 
     def save_stmt_status_p3(self, context_id, status):
+        self._invalidate_struct_field_access_cache()
         return self._stmt_status_p3_loader.save(context_id, status)
     def get_stmt_status_p3(self, context_id):
         return self._stmt_status_p3_loader.get_item_by_id(context_id)
@@ -2934,6 +2937,7 @@ class Loader:
         return self._symbol_state_space_p1_loader.contain(method_id)
 
     def save_symbol_state_space_p2(self, method_id, state_space):
+        self._invalidate_struct_field_access_cache()
         return self._symbol_state_space_p2_loader.save(method_id, state_space)
     def get_symbol_state_space_p2(self, method_id):
         return self._symbol_state_space_p2_loader.get_item_by_id(method_id)
@@ -2944,6 +2948,7 @@ class Loader:
         return self._symbol_state_space_summary_p2_loader.get_item_by_id(method_id)
 
     def save_symbol_state_space_p3(self, method_id, state_space):
+        self._invalidate_struct_field_access_cache()
         return self._symbol_state_space_p3_loader.save(method_id, state_space)
     def get_symbol_state_space_p3(self, method_id):
         return self._symbol_state_space_p3_loader.get_item_by_id(method_id)
@@ -3175,21 +3180,204 @@ class Loader:
     def save_method_used_symbols(self, method_id, symbols):
         return self._used_symbols_loader.save(method_id, symbols)
 
-    def get_used_stmt_ids_by_symbol(self, symbol_id):
+    def _get_symbol_query_method_ids(self, symbol_id):
         method_ids = set(self.get_all_method_ids())
         local_method_ids = {
             method_id
             for method_id in method_ids
             if symbol_id in self.get_method_def_use_summary(method_id).local_symbol_ids
         }
+        return local_method_ids if len(local_method_ids) == 1 else method_ids
 
-        target_method_ids = local_method_ids if len(local_method_ids) == 1 else method_ids
+    def get_used_stmt_ids_by_symbol(self, symbol_id):
         used_stmt_ids = set()
-        for method_id in target_method_ids:
+        for method_id in self._get_symbol_query_method_ids(symbol_id):
             method_used_symbols = self.get_method_used_symbols(method_id)
             if isinstance(method_used_symbols, dict):
                 used_stmt_ids.update(method_used_symbols.get(symbol_id, set()))
         return used_stmt_ids
+
+    def get_defined_stmt_ids_by_symbol(self, symbol_id):
+        defined_stmt_ids = set()
+        for method_id in self._get_symbol_query_method_ids(symbol_id):
+            method_defined_symbols = self.get_method_defined_symbols_p1(method_id)
+            if not isinstance(method_defined_symbols, dict):
+                continue
+            for definition in method_defined_symbols.get(symbol_id, set()):
+                if isinstance(definition, SymbolDefNode):
+                    defined_stmt_ids.add(definition.stmt_id)
+                elif isinstance(definition, (int, numpy.integer)):
+                    defined_stmt_ids.add(int(definition))
+        return defined_stmt_ids
+
+    @staticmethod
+    def _normalize_c_type_name(data_type):
+        type_name = str(data_type or "")
+        type_name = re.sub(r"\[[^\]]*\]", " ", type_name)
+        type_name = type_name.replace("*", " ")
+        type_name = re.sub(
+            r"\b(?:const|volatile|restrict|_Atomic|struct|union)\b",
+            " ",
+            type_name,
+        )
+        parts = type_name.split()
+        return parts[-1] if parts else ""
+
+    def _build_struct_field_access_cache(self):
+        cache = {}
+        class_name_to_ids = {}
+        class_scope_to_ids = {}
+        class_id_to_scope = {}
+        class_ids = {int(class_id) for class_id in self.get_all_class_ids()}
+
+        for class_id in class_ids:
+            class_name = self._normalize_c_type_name(
+                self.convert_class_id_to_class_name(class_id)
+            )
+            if class_name:
+                class_name_to_ids.setdefault(class_name, set()).add(class_id)
+                unit_id = int(self.convert_class_id_to_unit_id(class_id))
+                class_scope = (unit_id, class_name)
+                class_scope_to_ids.setdefault(class_scope, set()).add(class_id)
+                class_id_to_scope[class_id] = class_scope
+
+            field_ids = self.convert_class_id_to_field_ids(class_id)
+            for field_id in field_ids if field_ids is not None else []:
+                field_stmt = self.get_stmt_gir(field_id)
+                field_name = util.read_stmt_field(getattr(field_stmt, "name", ""))
+                if not field_name:
+                    continue
+                cache[(class_id, str(field_name))] = {
+                    "declarations": {int(field_id)},
+                    "writes": set(),
+                    "reads": set(),
+                }
+
+        for equivalent_class_ids in class_scope_to_ids.values():
+            declarations_by_field = {}
+            for class_id in equivalent_class_ids:
+                for (cached_class_id, field_name), accesses in cache.items():
+                    if cached_class_id == class_id:
+                        declarations_by_field.setdefault(field_name, set()).update(
+                            accesses["declarations"]
+                        )
+            for class_id in equivalent_class_ids:
+                for field_name, declarations in declarations_by_field.items():
+                    cache.setdefault(
+                        (class_id, field_name),
+                        {
+                            "declarations": set(declarations),
+                            "writes": set(),
+                            "reads": set(),
+                        },
+                    )
+
+        for method_id in self.get_all_method_ids():
+            statuses = self.get_stmt_status_p2(method_id)
+            space = self.get_symbol_state_space_p2(method_id)
+            if not isinstance(statuses, dict) or space is None:
+                continue
+
+            for stmt_id, status in statuses.items():
+                if not status.used_symbols or not status.field_name:
+                    continue
+                stmt = self.get_stmt_gir(stmt_id)
+                operation = getattr(stmt, "operation", "")
+                if operation not in ("field_read", "field_write"):
+                    continue
+
+                receiver = space[status.used_symbols[0]]
+                if not isinstance(receiver, Symbol):
+                    continue
+
+                receiver_class_ids = set()
+                receiver_unit_id = int(getattr(receiver, "source_unit_id", -1))
+                if receiver_unit_id < 0:
+                    receiver_unit_id = int(self.convert_method_id_to_unit_id(method_id))
+                for state_index in receiver.states:
+                    state = space[state_index]
+                    if not isinstance(state, State):
+                        continue
+                    type_name = self._normalize_c_type_name(state.data_type)
+                    scoped_class_ids = class_scope_to_ids.get(
+                        (receiver_unit_id, type_name), set()
+                    )
+                    if scoped_class_ids:
+                        receiver_class_ids.update(scoped_class_ids)
+                    elif len(class_name_to_ids.get(type_name, set())) == 1:
+                        receiver_class_ids.update(class_name_to_ids[type_name])
+                    if isinstance(state.value, (int, numpy.integer)):
+                        class_id = int(state.value)
+                        if class_id in class_ids:
+                            receiver_class_ids.add(class_id)
+
+                access_kind = "reads" if operation == "field_read" else "writes"
+                for class_id in receiver_class_ids:
+                    key = (class_id, str(status.field_name))
+                    if key in cache:
+                        cache[key][access_kind].add(int(stmt_id))
+
+        for entry_point in self.get_entry_points():
+            graph = self.get_global_sfg_by_entry_point(entry_point)
+            if graph is None:
+                continue
+            for source_node, dest_node, edge in graph.edges(data="weight"):
+                if not isinstance(edge, SFGEdge) or edge.stmt_id <= 0:
+                    continue
+                stmt = self.get_stmt_gir(edge.stmt_id)
+                operation = getattr(stmt, "operation", "")
+                if operation not in ("field_read", "field_write"):
+                    continue
+                field_name = util.read_stmt_field(getattr(stmt, "field", ""))
+                if not field_name:
+                    continue
+
+                receiver_class_ids = set()
+                for node in (source_node, dest_node):
+                    access_path = getattr(node, "access_path", [])
+                    if not access_path:
+                        continue
+                    path_key = access_path[0].key
+                    if isinstance(path_key, (int, numpy.integer)):
+                        class_id = int(path_key)
+                        if class_id in class_ids:
+                            receiver_class_ids.add(class_id)
+                    type_name = self._normalize_c_type_name(path_key)
+                    named_class_ids = class_name_to_ids.get(type_name, set())
+                    named_units = {
+                        class_id_to_scope[class_id][0]
+                        for class_id in named_class_ids
+                        if class_id in class_id_to_scope
+                    }
+                    if len(named_units) <= 1:
+                        receiver_class_ids.update(named_class_ids)
+
+                access_kind = "reads" if operation == "field_read" else "writes"
+                for class_id in receiver_class_ids:
+                    key = (class_id, str(field_name))
+                    if key in cache:
+                        cache[key][access_kind].add(int(edge.stmt_id))
+
+        self._struct_field_access_cache = cache
+
+    def _invalidate_struct_field_access_cache(self):
+        self._struct_field_access_cache = None
+
+    def _get_struct_field_accesses(self, struct_symbol_id, field_name):
+        if self._struct_field_access_cache is None:
+            self._build_struct_field_access_cache()
+        return self._struct_field_access_cache.get(
+            (int(struct_symbol_id), str(field_name)),
+            {"declarations": set(), "writes": set(), "reads": set()},
+        )
+
+    def get_defined_stmt_ids_by_struct_field(self, struct_symbol_id, field_name):
+        accesses = self._get_struct_field_accesses(struct_symbol_id, field_name)
+        return set(accesses["declarations"]) | set(accesses["writes"])
+
+    def get_used_stmt_ids_by_struct_field(self, struct_symbol_id, field_name):
+        accesses = self._get_struct_field_accesses(struct_symbol_id, field_name)
+        return set(accesses["reads"])
 
     def get_method_symbol_graph_p2(self, method_id):
         return self._symbol_graph_p2_loader.get_item_by_id(method_id)
@@ -3199,12 +3387,14 @@ class Loader:
         return self._symbol_graph_p3_loader.save(method_id, graph)
 
     def save_method_sfg(self, method_id, graph):
+        self._invalidate_struct_field_access_cache()
         return self._state_flow_graph_p2_loader.save(method_id, graph)
     def get_method_sfg(self, method_id):
         return self._state_flow_graph_p2_loader.get_item_by_id(method_id)
     def get_global_sfg_by_entry_point(self, method_id):
         return self._state_flow_graph_p3_loader.get_item_by_id(method_id)
     def save_global_sfg_by_entry_point(self, method_id, graph: StateFlowGraph):
+        self._invalidate_struct_field_access_cache()
         return self._state_flow_graph_p3_loader.save(method_id, graph.graph)
 
     def get_method_def_use_summary(self, method_id):
