@@ -211,6 +211,7 @@ class P1BasicSemanticAnalysis:
         if not self.options.quiet:
             print("\n###########  # Phase I: Basic Analysis #  ###########")
         unit_list = []
+        c_like_unit_scopes = []
         # Analyze each unit's scope hierarchy and entry points
         for unit_info in self.loader.get_all_unit_info():
             if self.is_cookiecutter_file(unit_info.unit_path):
@@ -234,9 +235,12 @@ class P1BasicSemanticAnalysis:
             if not unit_is_analyzed:
                 unit_scope = UnitScopeHierarchyAnalysis(self.lian, self.loader, unit_id, unit_info, unit_gir).analyze()
             self.entry_points.collect_entry_points_from_unit_scope(unit_info, unit_scope)
+            if unit_info.lang in ("c", "cpp"):
+                c_like_unit_scopes.append((unit_info, unit_scope))
             if not self.options.nomock:
                 self.extern_system.install_mock_code_file(unit_info, unit_scope)
 
+        self.entry_points.collect_fallback_c_entry_points(c_like_unit_scopes)
         self.loader.export_scope_hierarchy()
         self.loader.export_entry_points()
 

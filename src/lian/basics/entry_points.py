@@ -152,10 +152,24 @@ class EntryPointGenerator:
         # 如果没有候选规则，直接跳过
         if not candidate_rules:
             return
-        
         # Step 2: 遍历方法，仅用候选规则判断
         self.check_rules(unit_info, unit_scope, candidate_rules)
 
         # Step 3: 导出结果
         self.loader.save_entry_points(self.entry_point_results)
+
+    def collect_fallback_c_entry_points(self, c_like_unit_scopes):
+        if not c_like_unit_scopes or self.entry_point_results:
+            return
+
+        for unit_info, unit_scope in c_like_unit_scopes:
+            all_method_scopes = unit_scope.query_index_column_value("scope_kind", LIAN_SYMBOL_KIND.METHOD_KIND)
+            for scope in all_method_scopes:
+                attrs = scope.attrs if util.is_available(scope.attrs) else ""
+                if attrs and "static" in str(attrs):
+                    continue
+                self.entry_point_results.add(scope.stmt_id)
+
+        if self.entry_point_results:
+            self.loader.save_entry_points(self.entry_point_results)
 
