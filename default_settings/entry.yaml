@@ -6,6 +6,16 @@
 - lang: abc
   method_list: ["aboutToappear", "Index", "SunsPage", "SelectLocation", "RegisterPage", "LoadAd", "InitialRender", "init", "send", "Paramslambda", "requestOAIDTrackingConsentPermissions", "aboutToappear", "onChangeCallback", "onPageshow", "func_main_0", "onWindowStageCreate","onCreate", "deepRenderFunction"]
 
+# C/C++ 项目的通用入口点：main 函数。
+# 注意：没有 main 的纯库项目（比如 CBench 里很多 benchmark，包括 c-aces）
+# 这条规则匹配不到任何东西——这些项目由 entry_points.py 里的
+# collect_fallback_c_entry_points 兜底（整个项目一个入口点都没匹配到时，
+# 把所有非 static 顶层函数都当作入口点），不需要在这里为每个项目单独配置。
+- lang: c
+  method_list: ["main"]
+- lang: cpp
+  method_list: ["main"]
+
 # - lang: python
 #   method_list: ["from_pretrained", "a", "file", "view_image", "worker_api_generate_stream", "invoke", "init_device", "delete_images_from_list",
 #                 "retrieve", "start", "_create_model_version", "get_model_version_artifact_handler", "add",

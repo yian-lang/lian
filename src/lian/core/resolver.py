@@ -147,6 +147,20 @@ class Resolver:
         self.implicit_root_scopes_cache.put(unit_id, implicit_root_scopes)
         return implicit_root_scopes
 
+    def resolve_global_c_function_by_name(self, symbol_name):
+        method_ids = self.loader.convert_method_name_to_method_ids(symbol_name)
+        if not method_ids:
+            return None
+
+        for method_id in method_ids:
+            target_unit_id = self.loader.convert_method_id_to_unit_id(method_id)
+            if target_unit_id is None or target_unit_id < 0:
+                continue
+            scope_id = self.loader.convert_stmt_id_to_scope_id(method_id)
+            return SourceSymbolScopeInfo(target_unit_id, method_id, scope_id)
+
+        return None
+
     def resolve_symbol_source_decl(self, unit_id, stmt_id, symbol_name:str, unit_symbol_decl_summary, source_symbol_must_be_global = False):
         # if symbol_name == LIAN_INTERNAL.THIS:
         #     return SourceSymbolScopeInfo(unit_id, config.BUILTIN_THIS_SYMBOL_ID, -1)
@@ -183,6 +197,12 @@ class Resolver:
                     # nearest_scope_id = sorted_scopes_list[0]
                     nearest_scope_id = max(target_scope_ids)
                     return self.organize_return_value(unit_id, nearest_scope_id, symbol_name, unit_symbol_decl_summary, default_return)
+
+        if self.loader.convert_unit_id_to_lang_name(unit_id) == "c":
+            global_result = self.resolve_global_c_function_by_name(symbol_name)
+            if global_result is not None:
+                return global_result
+
         return default_return
 
     def collect_newest_states_by_state_indexes(
