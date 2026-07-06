@@ -153,7 +153,13 @@ class ControlFlowAnalysis:
         return result
 
     def analyze_while_stmt(self, current_block, current_stmt, parent_stmts, global_special_stmts):
-        self.link_parent_stmts_to_current_stmt(parent_stmts, current_stmt)
+        # condition_prebody must be (re-)run before every check, not just linked once like if_stmt's condition
+        condition_prebody_id = current_stmt.condition_prebody
+        condition_prebody = self.read_block(condition_prebody_id)
+
+        last_stmts_condition_prebody = self.analyze_block(condition_prebody, parent_stmts, global_special_stmts)
+        self.link_parent_stmts_to_current_stmt(last_stmts_condition_prebody, current_stmt)
+
         new_special_stmts = []
         body_id = current_stmt.body
         body = self.read_block(body_id)
@@ -162,6 +168,9 @@ class ControlFlowAnalysis:
             [CFGNode(current_stmt, CONTROL_FLOW_KIND.LOOP_TRUE)],
             new_special_stmts
         )
+        if len(last_stmts_of_body) != 0:
+            last_stmts_of_body = self.analyze_block(condition_prebody, last_stmts_of_body, new_special_stmts)
+
         last_stmts = self.deal_with_last_stmts_of_loop_body(
             current_stmt, last_stmts_of_body, new_special_stmts, global_special_stmts
         )
@@ -188,6 +197,9 @@ class ControlFlowAnalysis:
         body = self.read_block(body_id)
         boundary = self.boundary_of_multi_blocks(current_block, [body_id])
 
+        condition_prebody_id = current_stmt.condition_prebody
+        condition_prebody = self.read_block(condition_prebody_id)
+
         previous = parent_stmts[:]
         previous.append(
             CFGNode(current_stmt, CONTROL_FLOW_KIND.LOOP_TRUE)
@@ -195,6 +207,8 @@ class ControlFlowAnalysis:
 
         new_special_stmts = []
         last_stmts_of_body = self.analyze_block(body, previous, new_special_stmts)
+        if len(last_stmts_of_body) != 0:
+            last_stmts_of_body = self.analyze_block(condition_prebody, last_stmts_of_body, new_special_stmts)
 
         last_stmts = self.deal_with_last_stmts_of_loop_body(
             current_stmt, last_stmts_of_body, new_special_stmts, global_special_stmts
