@@ -1472,6 +1472,8 @@ class StmtStates:
         for index, states in enumerate(callee_state_arrays):
             for each_array_state_index in list(states):
                 each_array_state = self.frame.symbol_state_space[each_array_state_index]
+                if not isinstance(each_array_state, State):
+                    continue
                 if each_array_state.state_type == STATE_TYPE_KIND.ANYTHING:
                     self.resolver.resolve_anything_in_summary_generation(
                         each_array_state_index,
@@ -1496,6 +1498,8 @@ class StmtStates:
         arg_state.tangping_flag |= tangping_flag
         for each_tangping_element_index in tangping_elements.copy():
             each_tangping_element = self.frame.symbol_state_space[each_tangping_element_index]
+            if not isinstance(each_tangping_element, State):
+                continue
             if each_tangping_element.state_type == STATE_TYPE_KIND.ANYTHING:
                 self.resolver.resolve_anything_in_summary_generation(
                     each_tangping_element_index,
@@ -3247,7 +3251,7 @@ class StmtStates:
                             source_symbol_id=import_symbol.symbol_id,
                             source_state_id=each_receiver_state.source_state_id,
                             data_type=data_type,
-                            value=import_symbol.import_stmt,
+                            value=import_symbol.symbol_id,
                             # access_path = self.copy_and_extend_access_path(
                             #     each_receiver_state.access_path,
                             #     AccessPoint(
