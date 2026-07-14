@@ -144,7 +144,11 @@ class GIRProcessing:
         for mykey, myvalue in stmt_content.items():
             if isinstance(myvalue, list):
                 if not self.is_gir_format(myvalue):
-                    if flattened_node["operation"] == "method_decl" and mykey == "body":
+                    if "body" in mykey:
+                        # An empty statement block (e.g. `for (...) {}`) still needs a
+                        # real (empty) block so control_flow.py can compute a valid
+                        # boundary; otherwise boundary_of_multi_blocks() returns -1 and
+                        # analyze_block() drops every statement after this one.
                         block_id = self.flatten_block(myvalue, flattened_node["stmt_id"], dataframe)
                         flattened_node[mykey] = block_id
                         continue
