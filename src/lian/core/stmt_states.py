@@ -1565,6 +1565,7 @@ class StmtStates:
         new_object_flag: bool
     ):
         deferred_index_updates = set()
+        self.resolver.reset_ras_result_cache()
         if util.is_empty(instance_state_indexes):
             return
         status = self.frame.stmt_id_to_status[stmt_id]
@@ -1623,6 +1624,7 @@ class StmtStates:
         old_to_new_arg_state = {}
         old_to_latest_old_arg_state = {}
         deferred_index_updates = set()
+        self.resolver.reset_ras_result_cache()
 
         for each_mapping in parameter_mapping_list:
             if each_mapping.is_default_value:

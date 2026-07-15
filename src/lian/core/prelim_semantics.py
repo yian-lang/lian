@@ -925,6 +925,8 @@ class P2PrelimSemanticAnalysis:
         in_states = {}
         symbol_graph = frame.symbol_graph.graph
 
+        frame.latest_source_cache = {}
+
         if not symbol_graph.has_node(stmt_id) :
             return P2ResultFlag()
 

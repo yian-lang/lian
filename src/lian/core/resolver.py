@@ -48,6 +48,8 @@ class Resolver:
 
         self.implicit_root_scopes_cache = util.LRUCache(config.IMPLICIT_ROOT_SCOPES_CACHE_CAPACITY)
 
+        self.ras_result_cache = {}
+
     def find_unit_id_by_path(self, path):
         if path in self.file_path_to_unit_ids:
             return self.file_path_to_unit_ids[path]
@@ -423,6 +425,12 @@ class Resolver:
         current_stmt_id = current_frame.stmt_worklist.peek()
         current_status = current_frame.stmt_id_to_status[current_stmt_id]
 
+        cache = current_frame.latest_source_cache
+        cache_key = (current_stmt_id, state_symbol_id)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached.copy()
+
         available_symbol_defs: set = current_frame.symbol_bit_vector_manager.explain(current_status.in_symbol_bits)
         reachable_symbol_defs: set = available_symbol_defs & current_frame.defined_symbols[state_symbol_id]
         available_state_defs = current_frame.state_bit_vector_manager.explain(current_status.in_state_bits)
@@ -430,6 +438,7 @@ class Resolver:
         source_state_indexes = set()
 
         if len(reachable_symbol_defs) == 0:
+            cache[cache_key] = set()
             return set()
 
         for each_def in reachable_symbol_defs:
@@ -448,11 +457,13 @@ class Resolver:
             source_state_indexes.update(each_symbol_newest_states)
 
         if not source_state_indexes:
+            cache[cache_key] = set()
             return set()
 
         state_index_old_to_new = {} # TODO：2024.11.14 是否可以优化，从而不用再新创一个state？
         latest_source_state_indexes = self.retrieve_latest_states(current_frame, current_stmt_id, current_space, source_state_indexes, available_state_defs, state_index_old_to_new) # 拿source_state的最新状态
-        return latest_source_state_indexes
+        cache[cache_key] = latest_source_state_indexes
+        return latest_source_state_indexes.copy()
 
     # def get_sub_space(self, current_frame, current_space:SymbolStateSpace, latest_source_state_indexes, new_indexes):
     #     if not isinstance(current_frame, ComputeFrame):
@@ -753,13 +764,20 @@ class Resolver:
             set_to_update.update(accessed_states)
             return
 
-    @static_vars(processing_list = set, result_cache = dict)
+    def reset_ras_result_cache(self):
+        self.ras_result_cache = {}
+
+    @static_vars(processing_list = set)
     def resolve_anything_with_same_src_symbol_in_summary_generation(
         self, state_index, caller_frame: ComputeFrame, stmt_id, callee_id, parameter_symbol_id = -1,
         deferred_index_updates = None, set_to_update = None, arg_state_indexes = None
         ):
         state = caller_frame.symbol_state_space[state_index]
         access_path = state.access_path
+
+        cached_index = self.ras_result_cache.get(state_index)
+        if cached_index is not None:
+            return cached_index
 
         state_identifier = id(access_path)
         # 循环依赖或没有fields或a.f=a
@@ -805,19 +823,11 @@ class Resolver:
         if change_flag:
             created_state.state_type =  STATE_TYPE_KIND.REGULAR
             return_index = caller_frame.symbol_state_space.add(created_state)
-            util.add_to_dict_with_default_set(
-                self.resolve_anything_with_same_src_symbol_in_summary_generation.result_cache,
-                state_index,
-                return_index
-                )
+            self.ras_result_cache[state_index] = return_index
             self.resolve_anything_with_same_src_symbol_in_summary_generation.processing_list.discard(state_identifier)
             return return_index
         else:
-            util.add_to_dict_with_default_set(
-                self.resolve_anything_with_same_src_symbol_in_summary_generation.result_cache,
-                state_index,
-                state_index
-                )
+            self.ras_result_cache[state_index] = state_index
             self.resolve_anything_with_same_src_symbol_in_summary_generation.processing_list.discard(state_identifier)
             return state_index
 

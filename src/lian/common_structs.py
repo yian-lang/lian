@@ -731,8 +731,8 @@ class State(BasicElement):
             state_type = self.state_type,
             data_type = self.data_type,
             value = self.value,
-            fields = copy.deepcopy(self.fields),
-            array = copy.deepcopy(self.array),
+            fields = {key: set(value) for key, value in self.fields.items()},
+            array = [set(value) for value in self.array],
             tangping_elements= self.tangping_elements.copy(),
             tangping_flag = self.tangping_flag,
             source_symbol_id = self.source_symbol_id,
@@ -1966,6 +1966,8 @@ class ComputeFrame(MetaComputeFrame):
         self.this_class_ids = this_class_ids
         self.callee_this_class_ids = []
         self.call_site_analyze_counter = call_site_analyze_counter
+
+        self.latest_source_cache = {}
 
     def get_context(self):
         return self.call_site
