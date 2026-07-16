@@ -19,6 +19,11 @@ from lian.lang.code_preprocessor import prepare_code
 
 EXTENSIONS_LANG = lang_config.EXTENSIONS_LANG
 
+# These clauses may be entirely absent from the source (e.g. a while loop with no
+# else:); control_flow.py relies on them being None, not an empty block, to tell
+# "absent" from "present but empty".
+OPTIONAL_CLAUSE_BODY_KEYS = {"else_body", "elsebody", "catch_body", "final_body", "finally_body"}
+
 def determine_lang_by_path(file_path):
     ext = os.path.splitext(file_path)[1]
     return EXTENSIONS_LANG.get(ext, None)
@@ -144,7 +149,7 @@ class GIRProcessing:
         for mykey, myvalue in stmt_content.items():
             if isinstance(myvalue, list):
                 if not self.is_gir_format(myvalue):
-                    if "body" in mykey:
+                    if "body" in mykey and mykey not in OPTIONAL_CLAUSE_BODY_KEYS:
                         block_id = self.flatten_block(myvalue, flattened_node["stmt_id"], dataframe)
                         flattened_node[mykey] = block_id
                         continue
