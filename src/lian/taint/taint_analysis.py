@@ -786,22 +786,27 @@ class TaintAnalysis:
                 continue
             if node.name == "call_stmt" and self.rule_applier.apply_call_stmt_source_rules(node):
                 defined_symbol_node, defined_state_nodes = self.get_stmt_define_symbol_and_states_node(node)
-                node_list.append(defined_symbol_node)
+                if defined_symbol_node is not None:
+                    node_list.append(defined_symbol_node)
             elif node.name == "object_call_stmt" and self.rule_applier.apply_object_call_stmt_source_rules(node):
                 defined_symbol_node, defined_state_nodes = self.get_stmt_define_symbol_and_states_node(node)
-                node_list.append(defined_symbol_node)
+                if defined_symbol_node is not None:
+                    node_list.append(defined_symbol_node)
             elif node.name == "parameter_decl" and self.rule_applier.apply_parameter_source_rules(node):
                 defined_symbol_node, defined_state_nodes = self.get_stmt_define_symbol_and_states_node(node)
-                node_list.append(defined_symbol_node)
+                if defined_symbol_node is not None:
+                    node_list.append(defined_symbol_node)
             elif node.name == "field_read" and self.rule_applier.apply_field_read_source_rules(node):
                 defined_symbol_node, defined_state_nodes = self.get_stmt_define_symbol_and_states_node(node)
-                node_list.append(defined_symbol_node)
+                if defined_symbol_node is not None:
+                    node_list.append(defined_symbol_node)
             # 为了兼容codeql规则
             else:
                 rules = self.rule_manager.all_sources_from_code
                 if self.rule_applier.apply_rules_from_code(node, rules):
                     defined_symbol_node, defined_state_nodes = self.get_stmt_define_symbol_and_states_node(node)
-                    node_list.append(defined_symbol_node)
+                    if defined_symbol_node is not None:
+                        node_list.append(defined_symbol_node)
 
         return node_list
 
