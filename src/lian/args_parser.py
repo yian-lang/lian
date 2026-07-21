@@ -44,6 +44,7 @@ class ArgsParser:
             parser.add_argument("--graph", action="store_true", help="Output sfg (state flow graph) to .dot files")
             parser.add_argument("--complete-graph", action="store_true", help="Output the sfg with more detailed information for each node")
             parser.add_argument("--enable-p2", action="store_true", help="Enable the second phase of analysis")
+            parser.add_argument("--basic-semantics", action="store_true", help="Only run P1 basic structural semantic analysis")
 
             parser.add_argument("--nomock", action="store_true", help="Disable the external processing module")
 
@@ -79,6 +80,7 @@ class ArgsParser:
             complete_graph = False,
             nomock = False,
             enable_p2 = False,
+            basic_semantics = False,
         )
 
     def print_help(self):

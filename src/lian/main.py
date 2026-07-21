@@ -153,6 +153,9 @@ class Lian:
 
     def semantic_analysis(self):
         P1BasicSemanticAnalysis(self).run()
+        if self.options.basic_semantics:
+            self.loader.export()
+            return self
         analyzed_method_list = []
         if self.options.enable_p2:
             analyzed_method_list = P2PrelimSemanticAnalysis(self).run().analyzed_method_list
@@ -176,7 +179,8 @@ class Lian:
     def run_all(self):
         self.lang_analysis()
         self.semantic_analysis()
-        self.taint_analysis()
+        if not self.options.basic_semantics:
+            self.taint_analysis()
         return self
 
     # def run_all(self):
