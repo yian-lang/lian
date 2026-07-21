@@ -193,6 +193,11 @@ class Render:
                 value=False,
                 disabled=is_running
             )
+            self.basic_semantics = st.checkbox(
+                "仅基础语义分析 Only P1 basic semantics (--basic-semantics)",
+                value=False,
+                disabled=is_running
+            )
             self.force = st.checkbox(
                 "强制模式 Force mode (-f) ",
                 value=False,
@@ -293,6 +298,7 @@ class Render:
         flags = [
             ("-f", self.force),
             ("--enable-p2", self.enable_p2),
+            ("--basic-semantics", self.basic_semantics),
             ("-d", self.debug),
             ("-p", self.print_stmts),
             #("--android", self.android_mode),
