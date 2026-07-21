@@ -66,8 +66,10 @@ DEFAULT_MAX_GIR_ID                                           = 100000000
 
 MAX_TYPE_CAST_SOURCE_STATES                                  = 4
 MAX_ARRAY_ELEMENT_STATES                                     = 4
+MAX_RECORD_FIELDS                                             = 32
 
 MAX_METHOD_CALL_COUNT                                        = 30
+MAX_METHOD_STMTS                                              = 2000
 
 MAX_INDEX                                                    = 10
 

@@ -409,6 +409,15 @@ class StmtStates:
         state = self.frame.symbol_state_space[state_index]
         if not isinstance(state, State):
             return -1
+        # Prevent unbounded field/array maps from being deep-copied repeatedly.
+        if (
+            (not state.tangping_flag)
+            and (
+                len(state.fields) >= config.MAX_RECORD_FIELDS
+                or len(state.array) >= config.MAX_ARRAY_ELEMENT_STATES
+            )
+        ):
+            self.make_state_tangping(state)
         new_state = state.copy(stmt_id)
         index = self.frame.symbol_state_space.add(new_state)
         state_id = state.state_id
@@ -2835,6 +2844,16 @@ class StmtStates:
                         if each_index_value < 0:
                             each_index_value = array_length + each_index_value
 
+                        # Bound sparse/huge indices (e.g. cid_concepts[12325] = ...)
+                        # to avoid O(index) array extension blowups.
+                        if (
+                            each_index_value >= config.MAX_INDEX
+                            or each_index_value < 0
+                            or len(tmp_array) >= config.MAX_ARRAY_ELEMENT_STATES
+                        ):
+                            tangping_flag = True
+                            break
+
                         # 数组下标越界，将数组扩展
                         if not util.add_to_list_with_default_set(tmp_array, each_index_value, source_states):
                             tangping_flag = True
@@ -3239,7 +3258,7 @@ class StmtStates:
                 elif self.is_state_a_unit(each_receiver_state):
                     import_symbols = self.loader.get_unit_export_symbols(each_receiver_state.value)
 
-                    if field_name in import_symbols:
+                    if import_symbols and field_name in import_symbols:
                         import_symbol = import_symbols[field_name]
                         if import_symbol.symbol_type == LIAN_SYMBOL_KIND.METHOD_KIND:
                             data_type = LIAN_INTERNAL.METHOD_DECL
@@ -3542,13 +3561,35 @@ class StmtStates:
 
     def field_write_stmt_state(self, stmt_id, stmt, status: StmtStatus, in_states):
 
-        def tangping():
-            new_receiver_state_index = self.create_copy_of_state_and_add_space(status, stmt_id, receiver_state_index, stmt)
+        def tangping(from_state_index=None):
+            if from_state_index is None:
+                from_state_index = receiver_state_index
+            from_state = self.frame.symbol_state_space[from_state_index]
+            # Already collapsed: mutate in place and reuse to avoid O(n) state copies
+            # on huge dict/record literals (e.g. pydicom dictionaries).
+            if isinstance(from_state, State) and from_state.tangping_flag:
+                from_state.fields = {}
+                from_state.array = []
+                from_state.tangping_elements.update(source_states)
+                if len(from_state.tangping_elements) > config.MAX_ARRAY_ELEMENT_STATES:
+                    from_state.tangping_elements = set(
+                        list(from_state.tangping_elements)[:config.MAX_ARRAY_ELEMENT_STATES]
+                    )
+                defined_symbol_states.add(from_state_index)
+                return from_state
+
+            new_receiver_state_index = self.create_copy_of_state_and_add_space(status, stmt_id, from_state_index, stmt)
             new_receiver_state: State = self.frame.symbol_state_space[new_receiver_state_index]
             self.make_state_tangping(new_receiver_state)
+            new_receiver_state.fields = {}
+            new_receiver_state.array = []
             new_receiver_state.tangping_elements.update(source_states)
-            status.defined_states.discard(receiver_state_index)
-            defined_symbol_states.discard(receiver_state_index)
+            if len(new_receiver_state.tangping_elements) > config.MAX_ARRAY_ELEMENT_STATES:
+                new_receiver_state.tangping_elements = set(
+                    list(new_receiver_state.tangping_elements)[:config.MAX_ARRAY_ELEMENT_STATES]
+                )
+            status.defined_states.discard(from_state_index)
+            defined_symbol_states.discard(from_state_index)
             defined_symbol_states.add(new_receiver_state_index)
             return new_receiver_state
 
@@ -3599,6 +3640,17 @@ class StmtStates:
                     tangping()
                     continue
 
+                # Bound field/record growth to avoid O(n^2) blowup on huge dict literals
+                # (e.g. pydicom private/public DICOM dictionaries).
+                existing_fields = receiver_state.fields
+                field_key = each_field_state.value
+                if (
+                    len(existing_fields) >= config.MAX_RECORD_FIELDS
+                    and field_key not in existing_fields
+                ):
+                    tangping()
+                    continue
+
                 new_receiver_state_index = self.create_copy_of_state_and_add_space(status, stmt_id, receiver_state_index, stmt)
                 new_receiver_state: State = self.frame.symbol_state_space[new_receiver_state_index]
 
@@ -3614,7 +3666,13 @@ class StmtStates:
                         self.make_stmt_sfg_edge(stmt_id, SFG_EDGE_KIND.STATE_INCLUSION, name=each_field_state.value)
                     )
 
-                new_receiver_state.fields[each_field_state.value] = source_states
+                new_receiver_state.fields[field_key] = source_states
+                if len(new_receiver_state.fields) >= config.MAX_RECORD_FIELDS:
+                    self.make_state_tangping(new_receiver_state)
+                    if len(new_receiver_state.tangping_elements) > config.MAX_ARRAY_ELEMENT_STATES:
+                        new_receiver_state.tangping_elements = set(
+                            list(new_receiver_state.tangping_elements)[:config.MAX_ARRAY_ELEMENT_STATES]
+                        )
                 defined_symbol_states.add(new_receiver_state_index)
 
         defined_symbol.states = defined_symbol_states

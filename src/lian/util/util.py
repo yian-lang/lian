@@ -483,11 +483,17 @@ def add_to_dict_with_default_list(d, key, value):
         print(d, key, d[key])
         d[key].append(value)
 
-def add_to_list_with_default_set(l: list, index, value):
+def add_to_list_with_default_set(l: list, index, value, max_len=None):
     if index < 0 and index + len(l) < 0:
         return False
 
+    if max_len is not None and index >= max_len:
+        return False
+
     if index >= len(l):
+        # Refuse pathological sparse extension
+        if index > len(l) + 1024:
+            return False
         l.extend([set() for _ in range(index + 1 - len(l))])
     elif l[index] is None:
         l[index] = set()
