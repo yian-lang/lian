@@ -863,6 +863,8 @@ class Parser(common_parser.Parser):
             return tmp_var
 
         meet_splat = False
+        max_elements = 32
+        element_count = 0
         for index, item in enumerate(node.named_children):
             if self.is_comment(item):
                 continue
@@ -873,12 +875,15 @@ class Parser(common_parser.Parser):
                 self.append_stmts(statements, node, {"array_extend": {"array": tmp_var, "source": shadow_expr}})
 
             else:
+                if element_count >= max_elements:
+                    continue
                 if meet_splat:
                     shadow_expr = self.parse(item, statements)
                     self.append_stmts(statements, node, {"array_append": {"array": tmp_var, "source": shadow_expr}})
                 else:
                     shadow_expr = self.parse(item, statements)
                     self.append_stmts(statements, node, {"array_write": {"array": tmp_var, "index": str(index), "source": shadow_expr}})
+                element_count += 1
 
         return tmp_var
 
@@ -888,8 +893,14 @@ class Parser(common_parser.Parser):
         if node.named_child_count == 0:
             return tmp_var
 
+        # Bound expanded dict pairs in GIR to avoid analysis blowup on huge
+        # static dictionaries (e.g. pydicom private/public tag maps).
+        max_pairs = 32
+        pair_count = 0
         for item in node.named_children:
             if item.type == "pair":
+                if pair_count >= max_pairs:
+                    continue
                 key = self.find_child_by_field(item, "key")
                 value = self.find_child_by_field(item, "value")
 
@@ -897,6 +908,7 @@ class Parser(common_parser.Parser):
                 shadow_value = self.parse(value, statements)
 
                 self.append_stmts(statements, node, {"record_write": {"receiver_record": tmp_var, "key": shadow_key, "value": shadow_value}})
+                pair_count += 1
 
             elif item.type == "dictionary_splat":
                 shadow_expr = self.parse(item.named_children[0], statements)

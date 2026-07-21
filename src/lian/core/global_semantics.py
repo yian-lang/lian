@@ -214,8 +214,9 @@ class P3GlobalSemanticAnalysis(P2PrelimSemanticAnalysis):
             self.path_manager.add_path(frame.call_path)
 
         if not self.options.enable_p2:
-            super().init_compute_frame(frame, frame_stack)
-            
+            if super().init_compute_frame(frame, frame_stack) is None:
+                return None
+
             for stmt in frame.stmt_worklist:
                 frame.stmts_with_symbol_update.add(stmt)
 
@@ -246,6 +247,18 @@ class P3GlobalSemanticAnalysis(P2PrelimSemanticAnalysis):
         parameter_decl_block = GIRBlockViewer(parameter_decls)
         method_body_block = GIRBlockViewer(method_body)
         frame.unit_gir.append_other(parameter_decl_block).append_other(method_body_block)
+
+        # Skip pathological methods (e.g. auto-generated huge dict/list tables)
+        # that would explode state space and hang analysis.
+        stmt_count = len(frame.unit_gir.get_all_stmt_ids())
+        if stmt_count > config.MAX_METHOD_STMTS:
+            if not self.options.quiet:
+                method_name, unit_path = self._describe_method_context(method_id)
+                print(
+                    f"Skipping oversized method <method {method_id} name: {method_name}> "
+                    f"stmts={stmt_count} path={unit_path}"
+                )
+            return None
 
         for stmt_id in frame.unit_gir.get_all_stmt_ids():
             frame.stmt_counters[stmt_id] = round_number

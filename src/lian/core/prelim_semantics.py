@@ -143,6 +143,15 @@ class P2PrelimSemanticAnalysis:
         method_body_block = GIRBlockViewer(method_body)
         frame.unit_gir.append_other(parameter_decl_block).append_other(method_body_block)
 
+        stmt_count = len(frame.unit_gir.get_all_stmt_ids())
+        if stmt_count > config.MAX_METHOD_STMTS:
+            if not self.options.quiet:
+                print(
+                    f"Skipping oversized method <method {method_id} name: {frame.method_name}> "
+                    f"stmts={stmt_count}"
+                )
+            return None
+
         for stmt_id in frame.unit_gir.get_all_stmt_ids():
             frame.stmt_counters[stmt_id] = config.FIRST_ROUND
             frame.is_first_round[stmt_id] = True

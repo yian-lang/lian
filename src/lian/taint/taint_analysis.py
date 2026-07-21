@@ -394,9 +394,10 @@ class TaintRuleApplier:
         names = []
         if method_state_nodes and len(method_state_nodes) > 0:
             for state in method_state_nodes:
-                names.append(util.access_path_formatter(state.access_path) + '.' + stmt.field)
-        if stmt.receiver_object:
-            names.append(stmt.receiver_object + '.' + stmt.field)
+                if util.is_available(stmt.field):
+                    names.append(util.access_path_formatter(state.access_path) + '.' + str(stmt.field))
+        if util.is_available(stmt.receiver_object) and util.is_available(stmt.field):
+            names.append(str(stmt.receiver_object) + '.' + str(stmt.field))
         for rule in self.rule_manager.all_sources:
             if rule.unit_path and rule.unit_path != unit_path:
                 continue
@@ -421,9 +422,11 @@ class TaintRuleApplier:
         names = []
         if method_state_nodes and len(method_state_nodes) > 0:
             for state in method_state_nodes:
-                names.append(util.access_path_formatter(state.access_path) + '.' + stmt.field)
+                if util.is_available(stmt.field):
+                    names.append(util.access_path_formatter(state.access_path) + '.' + str(stmt.field))
 
-        names.append(stmt.receiver_object + '.' + stmt.field)
+        if util.is_available(stmt.receiver_object) and util.is_available(stmt.field):
+            names.append(str(stmt.receiver_object) + '.' + str(stmt.field))
         if stmt.field == "__init__":
             names.append("__init__")
         for rule in self.rule_manager.all_sinks:
@@ -631,10 +634,12 @@ class TaintRuleApplier:
         elif operation == "object_call_stmt":
             method_symbol_node, method_state_nodes = self.taint_analysis.get_stmt_used_symbol_and_state_by_pos(node)
             name = None
-            if method_state_nodes and len(method_state_nodes) > 0:
-                name = util.access_path_formatter(method_state_nodes[0].access_path) + '.' + stmt.field
+            if method_state_nodes and len(method_state_nodes) > 0 and util.is_available(stmt.field):
+                name = util.access_path_formatter(method_state_nodes[0].access_path) + '.' + str(stmt.field)
 
-            name1 = stmt.receiver_object + '.' + stmt.field
+            name1 = None
+            if util.is_available(stmt.receiver_object) and util.is_available(stmt.field):
+                name1 = str(stmt.receiver_object) + '.' + str(stmt.field)
             for rule in self.rule_manager.all_sinks:
                 if rule.name in [name, name1, stmt.field]:
                     matching_rules.append(rule)
