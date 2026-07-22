@@ -363,62 +363,55 @@ class StmtDefUseAnalysis:
         packed_positional_args = []
         named_args = []
         packed_named_args = []
-        # args_list = []
         if not util.isna(stmt.positional_args):
             positional_args = args_list[:positional_arg_index]
         elif not util.isna(stmt.packed_positional_args):
-            packed_named_args = args_list[0]
+            packed_positional_args = [args_list[0]] if args_list else []
         if not util.isna(stmt.packed_named_args):
             packed_named_args = args_list[positional_arg_index:]
         elif not util.isna(stmt.named_args):
             named_args = args_list[positional_arg_index:]
 
         used_symbols = status.used_symbols
-        arg_symbol_list = used_symbols[1:]
-        if stmt.operation == "object_call_stmt":
-            arg_symbol_list = used_symbols[2:]
+        arg_offset = 2 if stmt.operation == "object_call_stmt" else 1
+        arg_symbol_list = used_symbols[arg_offset:]
         callee_name_symbol = None
         if used_symbols:
-            callee_name_symbol_index = used_symbols[0]
-            callee_name_symbol = self.symbol_state_space[callee_name_symbol_index]
+            callee_name_symbol = self.symbol_state_space[used_symbols[0]]
 
         positional_args_info = []
         packed_positional_args_info = []
         named_args_info = []
         packed_named_args_info = []
-        if positional_args and len(arg_symbol_list) > 0:
+        if positional_args and arg_symbol_list:
             for index, arg in enumerate(positional_args):
                 if index >= len(arg_symbol_list):
-                    continue
-                index =  arg_symbol_list[index]
-                arg_symbol = self.symbol_state_space[index]
+                    break
+                space_index = arg_symbol_list[index]
+                arg_symbol = self.symbol_state_space[space_index]
                 if isinstance(arg_symbol, State):
                     positional_args_info.append({"state_id": arg_symbol.state_id, "value": arg_symbol.value})
-                else:
+                elif isinstance(arg_symbol, Symbol):
                     positional_args_info.append({"symbol_id": arg_symbol.symbol_id, "name": arg_symbol.name})
 
-        elif packed_positional_args and len(arg_symbol_list) > 0:
-            index =  arg_symbol_list[0]
-            arg_symbol = self.symbol_state_space[index]
-            packed_positional_args_info.append({"symbol_id": arg_symbol.symbol_id, "name": arg_symbol.name})
+        elif packed_positional_args and arg_symbol_list:
+            arg_symbol = self.symbol_state_space[arg_symbol_list[0]]
+            if isinstance(arg_symbol, Symbol):
+                packed_positional_args_info.append({"symbol_id": arg_symbol.symbol_id, "name": arg_symbol.name})
 
-        if named_args and len(arg_symbol_list) > 0:
+        if named_args and arg_symbol_list:
             args_keys = sorted(ast.literal_eval(stmt.named_args).keys())
-
-            named_symbol_list = arg_symbol_list[positional_arg_index:]
-            if named_symbol_list:
-                for index, arg in enumerate(named_args):
-                    if index >= len(named_symbol_list):
-                        break
-                    space_index =  named_symbol_list[index]
-                    arg_symbol = self.symbol_state_space[space_index]
-                    if isinstance(arg_symbol, State):
-                        named_args_info.append({"state_id": arg_symbol.state_id, "value": arg_symbol.value, "key": args_keys[index]})
-                    else:
-                        named_args_info.append({"symbol_id": arg_symbol.symbol_id, "name": arg_symbol.name, "key": args_keys[index]})
-        elif packed_named_args:
-            index = used_symbols[-1]
-            arg_symbol = self.symbol_state_space[index]
+            named_symbol_list = arg_symbol_list[len(positional_args):]
+            for index, arg in enumerate(named_args):
+                if index >= len(named_symbol_list) or index >= len(args_keys):
+                    break
+                arg_symbol = self.symbol_state_space[named_symbol_list[index]]
+                if isinstance(arg_symbol, State):
+                    named_args_info.append({"state_id": arg_symbol.state_id, "value": arg_symbol.value, "key": args_keys[index]})
+                elif isinstance(arg_symbol, Symbol):
+                    named_args_info.append({"symbol_id": arg_symbol.symbol_id, "name": arg_symbol.name, "key": args_keys[index]})
+        elif packed_named_args and used_symbols:
+            arg_symbol = self.symbol_state_space[used_symbols[-1]]
             if isinstance(arg_symbol, Symbol):
                 packed_named_args_info.append({"symbol_id": arg_symbol.symbol_id, "name": arg_symbol.name})
 
@@ -464,29 +457,28 @@ class StmtDefUseAnalysis:
         # 2. 构建 used_symbol_list
         used_symbol_list = []
         if is_object_call:
-            # object_call: [receiver, field, *args]
-            stmt_symbol_list = [stmt.receiver_object, stmt.field, *args_list]
-            for i, symbol in enumerate(stmt_symbol_list):
-                if i == 1 and not util.isna(symbol):  # field 是字符串常量
-                    used_symbol_list.append(
-                        self.create_state_and_add_space(
-                            stmt_id, value=symbol, data_type=LIAN_INTERNAL.STRING
-                        )
-                    )
-                elif not util.isna(symbol):
-                    used_symbol_list.append(
-                        self.create_symbol_or_state_and_add_space(stmt_id, symbol)
-                    )
+            receiver = stmt.receiver_object if not util.isna(stmt.receiver_object) else "unknown"
+            field = stmt.field if not util.isna(stmt.field) else ""
+            used_symbol_list.append(self.create_symbol_or_state_and_add_space(stmt_id, receiver))
+            used_symbol_list.append(
+                self.create_state_and_add_space(
+                    stmt_id, value=field, data_type=LIAN_INTERNAL.STRING
+                )
+            )
+            for symbol in args_list:
+                if util.isna(symbol):
+                    continue
+                used_symbol_list.append(self.create_symbol_or_state_and_add_space(stmt_id, symbol))
         else:
-            # call_stmt: [name, *args]
-            if stmt.name is None:
-                stmt.name = "unknown"
-            stmt_symbol_list = [stmt.name, *args_list]
-            for symbol in stmt_symbol_list:
-                if not util.isna(symbol):
-                    used_symbol_list.append(
-                        self.create_symbol_or_state_and_add_space(stmt_id, symbol)
-                    )
+            callee_name = stmt.name
+            if util.isna(callee_name):
+                callee_name = "unknown"
+                stmt.name = callee_name
+            used_symbol_list.append(self.create_symbol_or_state_and_add_space(stmt_id, callee_name))
+            for symbol in args_list:
+                if util.isna(symbol):
+                    continue
+                used_symbol_list.append(self.create_symbol_or_state_and_add_space(stmt_id, symbol))
 
         # 3. 创建目标符号（返回值变量）
         defined_symbol = self.create_symbol_and_add_space(stmt_id, stmt.target)

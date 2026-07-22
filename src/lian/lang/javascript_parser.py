@@ -130,7 +130,6 @@ class Parser(common_parser.Parser):
         return dirpath, filename
 
     def pack_args(self, node, statements: list):
-        return_list = []
         tmp_var = self.tmp_variable()
         self.append_stmts(statements, node, {
             "new_array": {
@@ -146,19 +145,16 @@ class Parser(common_parser.Parser):
             if arg.type == "spread_element":
                 meet_splat = True
                 shadow_expr = self.parse(arg, statements)
-                return_list.append(shadow_expr)
                 self.append_stmts(statements, node, {"array_extend": {"array": tmp_var, "source": shadow_expr}})
             else:
                 if meet_splat:
                     shadow_expr = self.parse(arg, statements)
-                    return_list.append(shadow_expr)
                     self.append_stmts(statements, node, {"array_append": {"array": tmp_var, "source": shadow_expr}})
                 else:
                     shadow_expr = self.parse(arg, statements)
-                    return_list.append(shadow_expr)
                     self.append_stmts(statements, node, {"array_write": {"array": tmp_var, "index": str(index), "source": shadow_expr}})
 
-        return return_list
+        return tmp_var
 
     def is_comment(self, node):
         return node.type == "comment"
@@ -677,6 +673,13 @@ class Parser(common_parser.Parser):
         gir_node = {}
 
         mytype = self.find_child_by_field(node, "constructor")
+        if mytype is None:
+            tmp_var = self.tmp_variable()
+            gir_node["data_type"] = ""
+            gir_node["args"] = []
+            gir_node["target"] = tmp_var
+            self.append_stmts(statements, node, {"new_object": gir_node})
+            return tmp_var
         shadow_mytype = self.read_node_text(mytype)
         gir_node["data_type"] = shadow_mytype
 

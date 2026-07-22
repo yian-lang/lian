@@ -114,7 +114,7 @@ class P2PrelimSemanticAnalysis:
 
     def adjust_defined_states_and_init_bit_vector(self, frame: ComputeFrame, method_id):
         defined_states = self.loader.get_method_defined_states_p1(method_id)
-        if util.is_empty(defined_states) or not hasattr(defined_states, "items"):
+        if util.is_empty(defined_states):
             frame.defined_states = {}
             frame.all_state_defs = set()
             frame.state_bit_vector_manager.init(frame.all_state_defs)
@@ -123,6 +123,8 @@ class P2PrelimSemanticAnalysis:
         frame.defined_states = defined_states
         all_state_defs = set()
         for state_id, defined_set in frame.defined_states.items():
+            if not defined_set:
+                continue
             for state_def_node in defined_set:
                 all_state_defs.add(state_def_node)
 

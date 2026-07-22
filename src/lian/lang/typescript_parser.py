@@ -393,6 +393,13 @@ class Parser(common_parser.Parser):
     def new_expression(self, node: Node, statements: list):
         gir_node = {}
         constructor = self.find_child_by_field(node, "constructor")
+        if constructor is None:
+            tmp_var = self.tmp_variable()
+            gir_node["data_type"] = ""
+            gir_node["args"] = []
+            gir_node["target"] = tmp_var
+            self.append_stmts(statements, node, {"new_object": gir_node})
+            return tmp_var
         if constructor.type == "array":
             return self.array(constructor, statements)
 
@@ -509,16 +516,16 @@ class Parser(common_parser.Parser):
 
     def parse_sequence_expression(self, node: Node, statements: list):
         sub_expressions = node.named_children
-        sequence_list = []
+        last = ""
         index = 0
         for sub_expression in sub_expressions:
             if index > config.MAX_INDEX:
                 break
             if self.is_comment(sub_expression):
                 continue
-            sequence_list.append(self.parse(sub_expression, statements))
+            last = self.parse(sub_expression, statements)
             index += 1
-        return sequence_list
+        return last
 
     def await_expression(self, node: Node, statements: list):
         expr = node.named_children[0]
