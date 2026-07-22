@@ -291,7 +291,12 @@ class GeneralLoader:
             bundle_data = self.bundle_cache.get(bundle_id)
         else:
             bundle_path = self.get_bundle_path(bundle_id)
-            bundle_data = DataModel().load(bundle_path)
+            if not os.path.exists(bundle_path):
+                return None
+            try:
+                bundle_data = DataModel().load(bundle_path)
+            except Exception:
+                return None
             self.bundle_cache.put(bundle_id, bundle_data)
 
         item_df = self.query_flattened_item_when_loading(_id, bundle_data)
@@ -300,8 +305,13 @@ class GeneralLoader:
     
     def get_item_by_id(self, _id):        
         item_df = self.get_raw_item_by_id(_id)
+        if item_df is None:
+            return None
         if not isinstance(item_df, DataModel):
-            return item_df
+            if util.is_empty(item_df):
+                item_df = DataModel([])
+            else:
+                return item_df
         return self.unflatten_item_dataframe_when_loading(_id, item_df)
 
     def get_all(self):
@@ -342,7 +352,9 @@ class GeneralLoader:
             new_bundle_id = self.new_bundle_id()
             bundle_df = self.convert_active_bundle_to_dataframe()
             bundle_path = f"{self.bundle_path_summary}.bundle{new_bundle_id}"
-            bundle_df.save(bundle_path)
+            saved = bundle_df.save(bundle_path)
+            if saved is None or not os.path.exists(bundle_path):
+                return
 
             self.bundle_cache.put(new_bundle_id, bundle_df)
             for item_id, bundle_id in self.item_id_to_bundle_id.items():
@@ -405,7 +417,9 @@ class UnitGIRLoader(UnitLevelLoader):
             new_bundle_id = self.new_bundle_id()
             bundle_df = self.convert_active_bundle_to_dataframe()
             bundle_path = f"{self.bundle_path_summary}.bundle{new_bundle_id}"
-            bundle_df.save(bundle_path)
+            saved = bundle_df.save(bundle_path)
+            if saved is None or not os.path.exists(bundle_path):
+                return
 
             for item_id, bundle_id in self.item_id_to_bundle_id.items():
                 if bundle_id == -1:
@@ -1810,18 +1824,32 @@ class MethodSymbolToDefinedLoader(MethodLevelAnalysisResultLoader):
 class MethodStateToDefinedLoader(MethodLevelAnalysisResultLoader):
     def unflatten_item_dataframe_when_loading(self, method_id, flattened_item):
         defined_states = {}
+        if util.is_empty(flattened_item) or not isinstance(flattened_item, DataModel):
+            return defined_states
         for row in flattened_item:
-            if row.state_id not in defined_states:
-                defined_states[row.state_id] = set()
-
-            for each_defined in row.defined:
-                if isinstance(each_defined, tuple):
-                    defined_states[row.state_id].add(
-                        StateDefNode(index = int(each_defined[0]), state_id = int(row.state_id), stmt_id = int(each_defined[1])))
+            state_id = getattr(row, "state_id", None)
+            if util.is_empty(state_id):
+                continue
+            if state_id not in defined_states:
+                defined_states[state_id] = set()
+            defined_vals = getattr(row, "defined", None)
+            if util.is_empty(defined_vals):
+                continue
+            for each_defined in defined_vals:
+                if isinstance(each_defined, (list, tuple)) and len(each_defined) >= 2:
+                    defined_states[state_id].add(
+                        StateDefNode(
+                            index=int(each_defined[0]),
+                            state_id=int(state_id),
+                            stmt_id=int(each_defined[1]),
+                        )
+                    )
         return defined_states
 
     def flatten_item_when_saving(self, method_id, defined_states):
         all_defined = []
+        if util.is_empty(defined_states) or not hasattr(defined_states, "items"):
+            return all_defined
         for state_id, defined_set in defined_states.items():
             defined = []
             for each_defined in defined_set:

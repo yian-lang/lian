@@ -1507,8 +1507,6 @@ class StmtStates:
         arg_state.tangping_flag |= tangping_flag
         for each_tangping_element_index in tangping_elements.copy():
             each_tangping_element = self.frame.symbol_state_space[each_tangping_element_index]
-            if not isinstance(each_tangping_element, State):
-                continue
             if each_tangping_element.state_type == STATE_TYPE_KIND.ANYTHING:
                 self.resolver.resolve_anything_in_summary_generation(
                     each_tangping_element_index,

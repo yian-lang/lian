@@ -423,15 +423,21 @@ class Resolver:
 
         current_space = current_frame.symbol_state_space
         current_stmt_id = current_frame.stmt_worklist.peek()
-        current_status = current_frame.stmt_id_to_status[current_stmt_id]
-
         cache = current_frame.latest_source_cache
         cache_key = (current_stmt_id, state_symbol_id)
         cached = cache.get(cache_key)
         if cached is not None:
             return cached.copy()
 
+        if current_stmt_id is None:
+            cache[cache_key] = set()
+            return set()
+        current_status = current_frame.stmt_id_to_status[current_stmt_id]
+
         available_symbol_defs: set = current_frame.symbol_bit_vector_manager.explain(current_status.in_symbol_bits)
+        if state_symbol_id not in current_frame.defined_symbols:
+            cache[cache_key] = set()
+            return set()
         reachable_symbol_defs: set = available_symbol_defs & current_frame.defined_symbols[state_symbol_id]
         available_state_defs = current_frame.state_bit_vector_manager.explain(current_status.in_state_bits)
 

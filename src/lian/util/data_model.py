@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import numpy as np
 import pandas as pd
 
@@ -126,6 +127,9 @@ class DataModel:
 
     def save(self, path):
         data = self.reset_index()._data
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         try:
             data.to_feather(path)
             return self
@@ -136,8 +140,9 @@ class DataModel:
                     data[column] = data[column].map(self.normalize_object_value)
                 data.to_feather(path)
                 return self
-            except Exception:
-                print(e)
+            except Exception as e2:
+                print(e2 if e2 else e)
+                return None
 
     def normalize_object_value(self, value):
         if value is None:
@@ -256,7 +261,9 @@ class DataModel:
     def query_index_column_value(self, column_name, value) -> "DataModel":  
         index_list = self.query_index_column_value_indices(column_name, value)
         if len(index_list) == 0:
-            return []
+            if self._data is not None:
+                return DataModel(self._data.iloc[0:0].copy(), columns=self._schema)
+            return DataModel([], columns=list(self._schema.keys()) if self._schema else None)
         df = self._data.iloc[index_list]
         return DataModel(df, columns = self._schema) 
 

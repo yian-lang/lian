@@ -159,12 +159,32 @@ class BasicGraph:
     def _add_one_edge(self, src_stmt_id, dst_stmt_id, weight):
         if src_stmt_id == dst_stmt_id:
             return
-        if isinstance(src_stmt_id, (int, numpy.int64)) and src_stmt_id < 0:
+        def _norm_id(x):
+            if isinstance(x, (int, numpy.int64)):
+                return int(x)
+            if isinstance(x, (float, numpy.floating)):
+                if util.is_empty(x):
+                    return None
+                if float(x).is_integer():
+                    return int(x)
+                return None
+            if isinstance(x, str):
+                s = x.strip()
+                if not s:
+                    return None
+                if s.lstrip('-').isdigit():
+                    return int(s)
+                return None
+            return None
+
+        src_id = _norm_id(src_stmt_id)
+        dst_id = _norm_id(dst_stmt_id)
+        if src_id is None or dst_id is None:
             return
-        # if config.DEBUG_FLAG:
-        #     util.debug(f"_add_one_edge:{src_stmt_id}->{dst_stmt_id}, weight={weight}")
-        if not self.graph.has_edge(src_stmt_id, dst_stmt_id):
-            self.graph.add_edge(src_stmt_id, dst_stmt_id, weight = weight)
+        if src_id < 0:
+            return
+        if not self.graph.has_edge(src_id, dst_id):
+            self.graph.add_edge(src_id, dst_id, weight = weight)
 
     # def add_node(self, node):
     #     if node:
@@ -253,13 +273,31 @@ class BasicGraph:
 
 class BasicGraphWithSelfCircle(BasicGraph):
     def _add_one_edge(self, src_stmt_id, dst_stmt_id, weight):
-        # if src_stmt_id == dst_stmt_id:
-        #     return
-        if isinstance(src_stmt_id, (int, numpy.int64)) and src_stmt_id < 0:
+        def _norm_id(x):
+            if isinstance(x, (int, numpy.int64)):
+                return int(x)
+            if isinstance(x, (float, numpy.floating)):
+                if util.is_empty(x):
+                    return None
+                if float(x).is_integer():
+                    return int(x)
+                return None
+            if isinstance(x, str):
+                s = x.strip()
+                if not s:
+                    return None
+                if s.lstrip('-').isdigit():
+                    return int(s)
+                return None
+            return None
+
+        src_id = _norm_id(src_stmt_id)
+        dst_id = _norm_id(dst_stmt_id)
+        if src_id is None or dst_id is None:
             return
-        # if config.DEBUG_FLAG:
-        #     util.debug(f"_add_one_edge:{src_stmt_id}->{dst_stmt_id}, weight={weight}")
-        self.graph.add_edge(src_stmt_id, dst_stmt_id, weight = weight)
+        if src_id < 0:
+            return
+        self.graph.add_edge(src_id, dst_id, weight = weight)
 
 class MultipleDirectedGraph(BasicGraph):
     pass
@@ -300,6 +338,8 @@ class SimpleWorkList:
                 }
 
     def _add_with_priority(self, item):
+        if isinstance(item, (int, numpy.integer)) and int(item) <= 0:
+            return
         if item not in self.all_data:
             if self.priority_dict:
                 heapq.heappush(self.work_list, (self.priority_dict.get(item, 0), item))
@@ -964,57 +1004,67 @@ class SymbolStateSpace(BasicSpace, ShiftIndexResult):
         old_index_to_new_index = {}
         new_index_to_old_index = {}
         all_indexes = set()
-        target_list_copy = target_list.copy()
-        target_list_copy = set(target_list_copy)
+        target_list_copy = set(target_list)
 
         # scanning all needed elements
         while len(target_list_copy) != 0:
             index = target_list_copy.pop()
             if index in all_indexes:
                 continue
-            all_indexes.add(index)
-
+            if not isinstance(index, (int, numpy.integer)) or int(index) < 0:
+                continue
             content = self.space[index]
-            if util.is_available(content):
-                if isinstance(content, State):
-                    for each_value in content.fields.values():
-                        target_list_copy.update(each_value)
-
-                    target_list_copy.update(content.tangping_elements)
-
-                    for each_value in content.array:
-                        target_list_copy.update(each_value)
-                elif isinstance(content, Symbol):
-                    # Symbol: states
-                    target_list_copy.update(content.states)
+            if not util.is_available(content):
+                continue
+            all_indexes.add(index)
+            if isinstance(content, State):
+                for each_value in content.fields.values():
+                    target_list_copy.update(each_value)
+                target_list_copy.update(content.tangping_elements)
+                for each_value in content.array:
+                    target_list_copy.update(each_value)
+            elif isinstance(content, Symbol):
+                # Symbol: states
+                target_list_copy.update(content.states)
 
         # copy target elements
-        for index in all_indexes:
+        for index in sorted(all_indexes):
             content = self.space[index]
-            if util.is_available(content):
-                results.append(content.copy())
-                new_index = len(results) - 1
-                old_index_to_new_index[index] = new_index
-                new_index_to_old_index[new_index] = index
+            results.append(content.copy())
+            new_index = len(results) - 1
+            old_index_to_new_index[index] = new_index
+            new_index_to_old_index[new_index] = index
+
+        def _remap_index_set(old_indexes):
+            if isinstance(old_indexes, set):
+                return {
+                    old_index_to_new_index[i]
+                    for i in old_indexes
+                    if i in old_index_to_new_index
+                }
+            if isinstance(old_indexes, list):
+                return [
+                    old_index_to_new_index[i]
+                    for i in old_indexes
+                    if i in old_index_to_new_index
+                ]
+            if isinstance(old_indexes, (int, numpy.integer)):
+                return old_index_to_new_index.get(old_indexes, old_indexes)
+            return old_indexes
 
         # adjust ids
         for element in results:
             if isinstance(element, State):
-                element.tangping_elements = util.map_index_to_new_index(
-                    element.tangping_elements, old_index_to_new_index
-                )
-                for each_field in element.fields:
-                    element.fields[each_field] = util.map_index_to_new_index(
-                        element.fields[each_field], old_index_to_new_index
-                    )
+                element.tangping_elements = _remap_index_set(element.tangping_elements)
+                for each_field in list(element.fields.keys()):
+                    element.fields[each_field] = _remap_index_set(element.fields[each_field])
                 new_array = []
                 for index_group in element.array:
-                    new_array.append(util.map_index_to_new_index(index_group, old_index_to_new_index))
+                    new_array.append(_remap_index_set(index_group))
                 element.array = new_array
-
             # Symbol
             elif isinstance(element, Symbol):
-                element.states = util.map_index_to_new_index(element.states, old_index_to_new_index)
+                element.states = _remap_index_set(element.states)
 
         space = SymbolStateSpace()
         space.space = results
@@ -1841,10 +1891,31 @@ class CallGraph(BasicGraph):
         return all_paths
 
     def _add_one_edge(self, src_stmt_id, dst_stmt_id, weight):
-        if isinstance(src_stmt_id, (int, numpy.int64)) and src_stmt_id < 0:
-            return
+        def _norm_id(x):
+            if isinstance(x, (int, numpy.int64)):
+                return int(x)
+            if isinstance(x, (float, numpy.floating)):
+                if util.is_empty(x):
+                    return None
+                if float(x).is_integer():
+                    return int(x)
+                return None
+            if isinstance(x, str):
+                s = x.strip()
+                if not s:
+                    return None
+                if s.lstrip('-').isdigit():
+                    return int(s)
+                return None
+            return None
 
-        self.graph.add_edge(src_stmt_id, dst_stmt_id, weight = weight)
+        src_id = _norm_id(src_stmt_id)
+        dst_id = _norm_id(dst_stmt_id)
+        if src_id is None or dst_id is None:
+            return
+        if src_id < 0:
+            return
+        self.graph.add_edge(src_id, dst_id, weight = weight)
 
     def export(self):
         pass

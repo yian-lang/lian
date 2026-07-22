@@ -169,7 +169,6 @@ class Parser(common_parser.Parser):
         return return_list
 
     def pack_args(self, node: Node, statements: list):
-        return_list = []
         tmp_var = self.tmp_variable()
         self.append_stmts(statements, node, {
             "new_array": {
@@ -186,19 +185,16 @@ class Parser(common_parser.Parser):
                 if arg.type == "variadic_unpacking":
                     meet_splat = True
                     shadow_expr = self.parse(arg, statements)
-                    return_list.append(shadow_expr)
                     self.append_stmts(statements, node, {"array_extend": {"array": tmp_var, "source": shadow_expr}})
                 else:
                     if meet_splat:
                         shadow_expr = self.parse(arg, statements)
-                        return_list.append(shadow_expr)
                         self.append_stmts(statements, node, {"array_append": {"array": tmp_var, "source": shadow_expr}})
                     else:
                         shadow_expr = self.parse(arg, statements)
-                        return_list.append(shadow_expr)
                         self.append_stmts(statements, node, {"array_write": {"array": tmp_var, "index": str(index), "source": shadow_expr}})
 
-        return return_list
+        return tmp_var
 
     def is_comment(self, node):
         return node.type == "comment"
