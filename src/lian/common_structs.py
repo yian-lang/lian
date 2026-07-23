@@ -273,7 +273,7 @@ class BasicGraph:
 
 class BasicGraphWithSelfCircle(BasicGraph):
     def _add_one_edge(self, src_stmt_id, dst_stmt_id, weight):
-        def _norm_id(x):
+        def _coerce(x):
             if isinstance(x, (int, numpy.int64)):
                 return int(x)
             if isinstance(x, (float, numpy.floating)):
@@ -288,14 +288,14 @@ class BasicGraphWithSelfCircle(BasicGraph):
                     return None
                 if s.lstrip('-').isdigit():
                     return int(s)
-                return None
-            return None
+                return s
+            return x
 
-        src_id = _norm_id(src_stmt_id)
-        dst_id = _norm_id(dst_stmt_id)
+        src_id = _coerce(src_stmt_id)
+        dst_id = _coerce(dst_stmt_id)
         if src_id is None or dst_id is None:
             return
-        if src_id < 0:
+        if isinstance(src_id, (int, numpy.integer)) and src_id < 0:
             return
         self.graph.add_edge(src_id, dst_id, weight = weight)
 
